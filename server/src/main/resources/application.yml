@@ -27,17 +27,38 @@ jwtToken:
   secret: secret
   timeout: 1800000
   algorithm: HS512
+
+## your datasource config
+source:
+  initial-size: 1
+  min-idle: 1
+  max-wait: 30000
+  max-active: 10
+  break-after-acquire-failure: false
+  connection-error-retry-attempts: 1
+  time-between-eviction-runs-millis: 2000
+  min-evictable-idle-time-millis: 600000
+  max-evictable-idle-time-millis: 900000
+  time-between-connect-error-millis: 60000
+  test-while-idle: true
+  test-on-borrow: false
+  test-on-return: false
+  validation-query: select 1
+  validation-query-timeout: 10
+  keep-alive: false
+  filters: stat
+
+  enable-query-log: false
+  result-limit: 1000000
     
 DAVINCI3_HOME: /Users/ymt/work/git_local_repository/davinci/davinci
 davinci:
   version: 0.3-rc
 
-
 file:
   userfiles-path: ${DAVINCI3_HOME}/userfiles/
   web_resources: ${DAVINCI3_HOME}/davinci-ui/
   base-path: ${DAVINCI3_HOME}/lib/
-
 
 spring:
   ## davinci datasource config

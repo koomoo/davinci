@@ -21,7 +21,7 @@ server:
   port: 8080
 
   servlet:
-    context-path: /dav
+    context-path: /
 
   # Used for mail and download services, can be empty, careful configuration
   # By default, 'server.address' and 'server.port' is used as the string value.
@@ -44,12 +44,11 @@ source:
   min-idle: 1
   max-wait: 30000
   max-active: 10
-  break-after-acquire-failure: false
+  break-after-acquire-failure: true
   connection-error-retry-attempts: 1
   time-between-eviction-runs-millis: 2000
   min-evictable-idle-time-millis: 600000
   max-evictable-idle-time-millis: 900000
-  time-between-connect-error-millis: 60000
   test-while-idle: true
   test-on-borrow: false
   test-on-return: false
@@ -70,6 +69,31 @@ spring:
     proxy-host:
     proxy-port:
     proxy-ignore:
+
+
+  ## davinci datasource config
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://localhost:3306/davinci0.3?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.jdbc.Driver
+    initial-size: 1
+    min-idle: 1
+    max-wait: 30000
+    max-active: 10
+    break-after-acquire-failure: true
+    connection-error-retry-attempts: 1
+    time-between-eviction-runs-millis: 2000
+    min-evictable-idle-time-millis: 600000
+    max-evictable-idle-time-millis: 900000
+    test-while-idle: true
+    test-on-borrow: false
+    test-on-return: false
+    validation-query: select 1
+    validation-query-timeout: 10
+    keep-alive: false
+    filters: stat
 
   ## redis config
   ## please choose either of the two ways
@@ -98,11 +122,11 @@ spring:
   ## mail config cannot be null or empty
   ## some mailboxes need to be set separately password for the SMTP service)
   mail:
-    host: smtp.exmail.qq.com
-    port: 25
-    username: liufei@ymt360.com
+    host:
+    port:
+    username:
     fromAddress:
-    password: Wcr6i475v7Wmdgq9
+    password:
     nickname:
 
     properties:

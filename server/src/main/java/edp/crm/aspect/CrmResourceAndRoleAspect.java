@@ -18,16 +18,29 @@
 
 package edp.crm.aspect;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.After;
+import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
+
 import edp.crm.util.HttpClientUtil;
 import edp.davinci.core.enums.LogNameEnum;
+import edp.davinci.dto.projectDto.ProjectCreat;
+import edp.davinci.dto.projectDto.ProjectInfo;
+import edp.davinci.dto.projectDto.ProjectUpdate;
+import edp.davinci.model.Project;
+import edp.davinci.model.User;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -49,7 +62,11 @@ public class CrmResourceAndRoleAspect {
 	private static final String DASHBOARD_CREAT_METHOD_NAME = "createDashboard";
 	private static final String DASHBOARD_UPDATE_METHOD_NAME = "updateDashboards";
 	private static final String DASHBOARD_DELETE_METHOD_NAME = "deleteDashboard";
-
+	
+	private static final Integer CRM_RESOURCE_TYPE_ID_URL = 2;
+	private static final Integer CRM_DAVINCI_MENU_RESOURCE_ID = 1782;
+	private static final String CRM_RESOURCE_SYSTEM_CODE_CRM = "CRM";
+	
 	//切点
     @Pointcut("execution(* edp.davinci.service.impl.ProjectServiceImpl.createProject(..)) "
     		+ "|| execution(* edp.davinci.service.impl.ProjectServiceImpl.updateProject(..)) "
@@ -64,99 +81,128 @@ public class CrmResourceAndRoleAspect {
     public void pointcut() {
     }
 
-    @After("pointcut()")
-    public void afterMethod(JoinPoint joinPoint) throws Exception {
+    @AfterReturning(pointcut="pointcut()", returning="methodRe")
+    public void afterMethod(JoinPoint joinPoint, Object methodRe) throws Exception {
     		String className = joinPoint.getTarget().getClass().getSimpleName();
     		String methodName = joinPoint.getSignature().getName();
     		if(PROJECT_SERVICE_NAME.equals(className)) {
     			//project
     			if(PROJECT_CREAT_METHOD_NAME.equals(methodName)) {
     				//增
-    				createProject(joinPoint);
+    				createProject(joinPoint, methodRe);
     			}else if(PROJECT_UPDATE_METHOD_NAME.equals(methodName)) {
     				//改
-    				updateProject(joinPoint);
+    				updateProject(joinPoint, methodRe);
     			}else if(PROJECT_DELETE_METHOD_NAME.equals(methodName)) {
     				//删
-    				deleteProject(joinPoint);
+    				deleteProject(joinPoint, methodRe);
     			}
     		}else if(DASHBOARD_PORTAL_SERVICE_NAME.equals(className)) {
     			//dashboard_portal
     			if(DASHBOARD_PORTAL_CREAT_METHOD_NAME.equals(methodName)) {
     				//增
-    				createDashboardPortal(joinPoint);
+    				createDashboardPortal(joinPoint, methodRe);
     			}else if(DASHBOARD_PORTAL_UPDATE_METHOD_NAME.equals(methodName)) {
     				//改
-    				updateDashboardPortal(joinPoint);
+    				updateDashboardPortal(joinPoint, methodRe);
     			}else if(DASHBOARD_PORTAL_DELETE_METHOD_NAME.equals(methodName)) {
     				//删
-    				deleteDashboardPortal(joinPoint);
+    				deleteDashboardPortal(joinPoint, methodRe);
     			}
     		}else if(DASHBOARD_SERVICE_NAME.equals(className)) {
     			//dashboard
     			if(DASHBOARD_CREAT_METHOD_NAME.equals(methodName)) {
     				//增
-    				createDashboard(joinPoint);
+    				createDashboard(joinPoint, methodRe);
     			}else if(DASHBOARD_UPDATE_METHOD_NAME.equals(methodName)) {
     				//改
-    				updateDashboard(joinPoint);
+    				updateDashboard(joinPoint, methodRe);
     			}else if(DASHBOARD_DELETE_METHOD_NAME.equals(methodName)) {
     				//删
-    				deleteDashboard(joinPoint);
+    				deleteDashboard(joinPoint, methodRe);
     			}
     		}
     }
 
-	private void deleteDashboard(JoinPoint joinPoint) {
+	private void deleteDashboard(JoinPoint joinPoint, Object methodRe) {
 		// TODO Auto-generated method stub
 		System.out.println("deleteDashboard");
 	}
 
-	private void updateDashboard(JoinPoint joinPoint) {
+	private void updateDashboard(JoinPoint joinPoint, Object methodRe) {
 		// TODO Auto-generated method stub
 		System.out.println("updateDashboard");
 	}
 
-	private void createDashboard(JoinPoint joinPoint) {
+	private void createDashboard(JoinPoint joinPoint, Object methodRe) {
 		// TODO Auto-generated method stub
 		System.out.println("createDashboard");
 	}
 
-	private void deleteDashboardPortal(JoinPoint joinPoint) {
+	private void deleteDashboardPortal(JoinPoint joinPoint, Object methodRe) {
 		// TODO Auto-generated method stub
 		System.out.println("deleteDashboardPortal");
 	}
 
-	private void updateDashboardPortal(JoinPoint joinPoint) {
+	private void updateDashboardPortal(JoinPoint joinPoint, Object methodRe) {
 		// TODO Auto-generated method stub
 		System.out.println("updateDashboardPortal");
 	}
 
-	private void createDashboardPortal(JoinPoint joinPoint) {
+	private void createDashboardPortal(JoinPoint joinPoint, Object methodRe) {
 		// TODO Auto-generated method stub
 		System.out.println("createDashboardPortal");
 	}
 
-	private void deleteProject(JoinPoint joinPoint) {
+	private void deleteProject(JoinPoint joinPoint, Object methodRe) {
 		// TODO Auto-generated method stub
 		System.out.println("deleteProject");
 	}
 
-	private void updateProject(JoinPoint joinPoint) throws Exception {
+	private void updateProject(JoinPoint joinPoint, Object methodRe) throws Exception {
 		// TODO Auto-generated method stub
 		System.out.println("updateProject");
-		log.info("updateProduct后置通知");
+		log.info("updateProject后置通知");
 		String doGet = HttpClientUtil.doPost("http://www.baidu.com",null);
 		System.out.println(doGet);
+		Object[] args = joinPoint.getArgs();
+		int i = 1;
+		for (Object object : args) {
+			System.out.println("第" + i);
+			System.out.println(object);
+			i++;
+		}
+		Long id = (Long)args[0];
+		System.out.println(id);
+		ProjectUpdate projectUpdate = (ProjectUpdate) args[1];
+		System.out.println(JSON.toJSONString(projectUpdate));
+		User user = (User) args[2];
+		System.out.println(JSON.toJSONString(user));
 	}
 
-	private void createProject(JoinPoint joinPoint) {
-		// TODO Auto-generated method stub
-		System.out.println("createProject");
+	private void createProject(JoinPoint joinPoint, Object methodRe) {
+		ProjectCreat projectCreat = (ProjectCreat)joinPoint.getArgs()[0];
+		User user = (User)joinPoint.getArgs()[1];
+		Map<String,Object> param = new HashMap<>();
+		param.put("resourceTypeId", CRM_RESOURCE_TYPE_ID_URL);
+		param.put("parentResourceId", CRM_DAVINCI_MENU_RESOURCE_ID);
+		param.put("resourceName", projectCreat.getName());
+		ProjectInfo projectInfo = (ProjectInfo)methodRe;
+		param.put("resourceUrl", assembleResourceUrl(projectInfo.getId()));
+		param.put("systemCode", CRM_RESOURCE_SYSTEM_CODE_CRM);
+		param.put("displayName", projectCreat.getName());
+		String postReStr = HttpClientUtil.doPostJson("刘飞 创建资源的接口", JSON.toJSONString(param));
+		Map<String,Object> postRe = JSON.parseObject(postReStr, new TypeReference<Map<String,Object>>(){}.getType());
+		if(postRe == null || Integer.valueOf(0).equals(postRe.get("status"))) {
+			optLogger.error("创建CRM资源失败,erroMsg={}", postRe.get("msg"));
+		}
 		
-		//1.在一个固定菜单【1782】下创建一个资源，资源的resource_url与davinci的projectId有关，用于创建dashboard_portal的时候查询父resourceId
-		
+		//创建角色
 		//2.创建一个角色 在407下，依然是个不可选的父角色，但是要和projectId有关系，因为在创建portal的时候要创建角色，这个角色要挂在该项目对应的角色下
 		
+	}
+	
+	private String assembleResourceUrl(Long projectId) {
+		return "DAVINCI_PROJECT_" + projectId;
 	}
 }

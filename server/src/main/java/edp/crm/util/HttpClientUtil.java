@@ -34,6 +34,7 @@ public class HttpClientUtil {
  
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientUtil.class);
  
+    //刘飞 调用crm的接口需要统一加上product参数
     public static String doGet(String url, Map<String, String> param) throws Exception {
         String resultString = "";
         CloseableHttpResponse response = null;

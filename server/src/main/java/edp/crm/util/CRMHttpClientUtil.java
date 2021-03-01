@@ -11,7 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
- 
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -29,12 +30,11 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSONObject;
  
-public class HttpClientUtil {
+public class CRMHttpClientUtil {
     private static final String CHARSET = "UTF-8";
  
-    private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CRMHttpClientUtil.class);
  
-    //刘飞 调用crm的接口需要统一加上product参数
     public static String doGet(String url, Map<String, String> param) throws Exception {
         String resultString = "";
         CloseableHttpResponse response = null;
@@ -126,8 +126,9 @@ public class HttpClientUtil {
     }
  
     public static String doPostJson(String url, String json) {
- 
-        CloseableHttpResponse response = null;
+    		url = processUrl(url);
+    		LOGGER.info("请求url={}", url);
+    		CloseableHttpResponse response = null;
         String resultString = "";
         try (
                 // 创建Httpclient对象
@@ -156,7 +157,14 @@ public class HttpClientUtil {
         return resultString;
     }
  
-    /**
+    private static String processUrl(String url) {
+		if(StringUtils.isBlank(url)) return url;
+		return url 
+				+ (url.contains("?") ? "&" : "?") 
+				+ "sercertKey=DAVINCI&product=davinci&gray-mark=liufei";
+	}
+
+	/**
      * 通过http访问获取json数据
      *
      * @param targetURL
@@ -206,7 +214,7 @@ public class HttpClientUtil {
  
  
         System.out.println(jsonObject);
-        String s = HttpClientUtil.doPostJson("http://192.168.13.123:9530/uploadById.do", jsonObject);
+        String s = CRMHttpClientUtil.doPostJson("http://192.168.13.123:9530/uploadById.do", jsonObject);
         System.out.println(s);
  
     }

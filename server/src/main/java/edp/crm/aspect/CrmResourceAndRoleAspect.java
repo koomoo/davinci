@@ -19,8 +19,10 @@
 package edp.crm.aspect;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -33,15 +35,28 @@ import org.springframework.stereotype.Component;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.google.common.collect.Lists;
 
-import edp.crm.util.HttpClientUtil;
+import edp.core.utils.DateUtils;
+import edp.crm.util.CRMHttpClientUtil;
 import edp.davinci.core.enums.LogNameEnum;
+import edp.davinci.dto.dashboardDto.DashboardCreate;
+import edp.davinci.dto.dashboardDto.DashboardDto;
+import edp.davinci.dto.dashboardDto.DashboardPortalCreate;
+import edp.davinci.dto.dashboardDto.DashboardPortalUpdate;
 import edp.davinci.dto.projectDto.ProjectCreat;
 import edp.davinci.dto.projectDto.ProjectDetail;
 import edp.davinci.dto.projectDto.ProjectInfo;
 import edp.davinci.dto.projectDto.ProjectUpdate;
+import edp.davinci.dto.shareDto.ShareEntity;
+import edp.davinci.model.Dashboard;
+import edp.davinci.model.DashboardPortal;
 import edp.davinci.model.User;
+import edp.davinci.service.DashboardService;
 import edp.davinci.service.ProjectService;
+import edp.davinci.service.share.ShareMode;
+import edp.davinci.service.share.ShareResult;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -65,23 +80,30 @@ public class CrmResourceAndRoleAspect {
 	private static final String DASHBOARD_DELETE_METHOD_NAME = "deleteDashboard";
 	
 	private static final String TYPE_PROJECT = "PROJECT";
-	private static final String TYPE_PORTAL = "PORTAL";
+	private static final String TYPE_DASHBOARD_PORTAL = "DASHBOARD_PORTAL";
 	private static final String TYPE_DASHBOARD = "DASHBOARD";
 	
 	private static final Integer CRM_RESOURCE_TYPE_ID = 2;
-	private static final Integer CRM_RESOURCE_MENU = 1782;
+	private static final Integer CRM_RESOURCE_MENU_SYSTEMMANAGER = 1;
+	private static final Integer CRM_RESOURCE_MENU_DAVINCI = 1802;
 	private static final String CRM_RESOURCE_SYSTEM_CODE_CRM = "CRM";
 	private static final Integer CRM_ROLE_MENU = 407;
 	private static final Integer CRM_ROLE_GROUP_ID = 1;
 	
-	private static final String CRM_SERVER = "http://api.ymt.io/crm-gateway/api";
+	//private static final String CRM_SERVER = "http://api.ymt.io/crm-gateway/api";
+	private static final String CRM_SERVER = "http://dev-crm-host001.ymt.io:81/api";
 	private static final String RESOURCE_CREATE_URL = "/resource";
 	private static final String RESOURCE_UPDATE_URL = "/resource/update";
+	private static final String RESOURCE_DELETE_URL = "/resource/delete";
 	private static final String ROLE_CREATE_URL = "/role";
-	private static final String ROLE_UPDATE_URL = "/role";
+	private static final String ROLE_UPDATE_URL = "/role/update";
+	private static final String ROLE_DELETE_URL = "/role/delete";
+	private static final String ROLE_RESOURCE_REL_URL = "/roleResource";
 	
 	@Autowired
 	private ProjectService projectService;
+	@Autowired
+    private DashboardService dashboardService;
 	
 	@Pointcut(
     		"execution(* edp.davinci.service.impl.ProjectServiceImpl.updateProject(..)) "
@@ -158,101 +180,236 @@ public class CrmResourceAndRoleAspect {
     }
 
 	private void deleteDashboard(JoinPoint joinPoint, Object methodRe) {
-		// TODO Auto-generated method stub
-		System.out.println("deleteDashboard");
+		Long id = (Long)joinPoint.getArgs()[0];
+		User user = (User)joinPoint.getArgs()[1];
+		
+		deleteCrmResource(assembleResourceUrl(TYPE_DASHBOARD, id), user.getUsername());
 	}
-
+	
 	private void updateDashboard(JoinPoint joinPoint) {
-		// TODO Auto-generated method stub
-		System.out.println("updateDashboard");
+		DashboardDto[] dashboards = (DashboardDto[]) joinPoint.getArgs()[1];
+		User user = (User) joinPoint.getArgs()[2];
+
+		for (DashboardDto dashboard : dashboards) {
+			updateCrmResource(assembleResourceUrl(TYPE_DASHBOARD, dashboard.getId()), dashboard.getName(),
+					user.getUsername());
+		}
 	}
 
-	private void createDashboard(JoinPoint joinPoint, Object methodRe) {
-		// TODO Auto-generated method stub
-		System.out.println("createDashboard");
+	private void createDashboard(JoinPoint joinPoint, Object methodRe) throws Exception {
+		DashboardCreate dashboardCreate = (DashboardCreate) joinPoint.getArgs()[0];
+		User user = (User) joinPoint.getArgs()[1];
+		Dashboard dashboard = (Dashboard) methodRe;
+		createCrmResource(null, assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()),
+				dashboardCreate.getName(), assembleResourceUrl(TYPE_DASHBOARD, dashboard.getId()), 1,
+				user.getUsername(), assembleShareUrl(dashboard.getId(), user));
+
+		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
+		CrmRoleResourceCreate crmRoleResourceCreate = new CrmRoleResourceCreate();
+		crmRoleResourceCreate
+				.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
+		crmRoleResourceCreate.setResourceUrl(assembleResourceUrl(TYPE_DASHBOARD, dashboard.getId()));
+		rel.add(crmRoleResourceCreate);
+		relCrmRoleResource(user.getUsername(), rel);
+	}
+
+	private String assembleShareUrl(Long id, User user) throws Exception {
+		ShareEntity shareEntity = new ShareEntity();
+		shareEntity.setMode(ShareMode.NORMAL);
+		shareEntity.setExpired(DateUtils.getUtilDate("2050-03-18 17:07:42", "yyyy-MM-dd HH:mm:ss"));
+		ShareResult shareResult = dashboardService.shareDashboard(id, user, shareEntity);
+		return "/dav/share.html?shareToken=" + shareResult.getToken() + "#share/dashboard";
 	}
 
 	private void deleteDashboardPortal(JoinPoint joinPoint, Object methodRe) {
-		// TODO Auto-generated method stub
-		System.out.println("deleteDashboardPortal");
+		Long id = (Long) joinPoint.getArgs()[0];
+		User user = (User) joinPoint.getArgs()[1];
+		deleteCrmResource(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, id), user.getUsername());
+		deleteCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, id), user.getUsername());
 	}
 
 	private void updateDashboardPortal(JoinPoint joinPoint) {
-		// TODO Auto-generated method stub
-		System.out.println("updateDashboardPortal");
+		DashboardPortalUpdate dashboardPortalUpdate = (DashboardPortalUpdate) joinPoint.getArgs()[0];
+		User user = (User) joinPoint.getArgs()[1];
+		updateCrmResource(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortalUpdate.getId()),
+				dashboardPortalUpdate.getName(), user.getUsername());
+		updateCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalUpdate.getId()),
+				assembleRoleName(TYPE_DASHBOARD_PORTAL, dashboardPortalUpdate.getName()), user.getUsername());
 	}
 
 	private void createDashboardPortal(JoinPoint joinPoint, Object methodRe) {
-		// TODO Auto-generated method stub
-		System.out.println("createDashboardPortal");
+		DashboardPortalCreate dashboardPortalCreat = (DashboardPortalCreate) joinPoint.getArgs()[0];
+		User user = (User) joinPoint.getArgs()[1];
+		DashboardPortal dashboardPortal = (DashboardPortal) methodRe;
+		createCrmResource(null, assembleResourceUrl(TYPE_PROJECT, dashboardPortalCreat.getProjectId()),
+				dashboardPortalCreat.getName(), assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()), 0,
+				user.getUsername());
+		createCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
+				assembleRoleName(TYPE_DASHBOARD_PORTAL, dashboardPortalCreat.getName()), null,
+				assembleRoleEnglish(TYPE_PROJECT, dashboardPortalCreat.getProjectId()), 0, user.getUsername());
+		
+		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
+		CrmRoleResourceCreate crmSystemManageMenuRel = new CrmRoleResourceCreate();
+		crmSystemManageMenuRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		crmSystemManageMenuRel.setResourceId(CRM_RESOURCE_MENU_SYSTEMMANAGER);
+		rel.add(crmSystemManageMenuRel);
+		
+		CrmRoleResourceCreate crmDavinciMenuRel = new CrmRoleResourceCreate();
+		crmDavinciMenuRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		crmDavinciMenuRel.setResourceId(CRM_RESOURCE_MENU_DAVINCI);
+		rel.add(crmDavinciMenuRel);
+		
+		CrmRoleResourceCreate projectResourceRel = new CrmRoleResourceCreate();
+		projectResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		projectResourceRel.setResourceUrl(assembleResourceUrl(TYPE_PROJECT, dashboardPortalCreat.getProjectId()));
+		rel.add(projectResourceRel);
+		
+		CrmRoleResourceCreate dashboardPortalResourceRel = new CrmRoleResourceCreate();
+		dashboardPortalResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		dashboardPortalResourceRel.setResourceUrl(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortal.getProjectId()));
+		rel.add(dashboardPortalResourceRel);
+		
+		relCrmRoleResource(user.getUsername(), rel);
 	}
 
 	private void deleteProject(JoinPoint joinPoint, Object methodRe) {
-		// TODO Auto-generated method stub
-		System.out.println("deleteProject");
+		Long projectId = (Long) joinPoint.getArgs()[0];
+		User user = (User) joinPoint.getArgs()[1];
+		deleteCrmResource(assembleResourceUrl(TYPE_PROJECT, projectId), user.getUsername());
+		deleteCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), user.getUsername());
 	}
 
 	private void updateProject(JoinPoint joinPoint) throws Exception {
-		//只有修改项目名的时候需要同步相应的资源和角色
-		Object[] args = joinPoint.getArgs();
-		Long projectId = (Long)args[0];
-		ProjectUpdate projectUpdate = (ProjectUpdate)args[1];
-		User user = (User)args[2];
+		Long projectId = (Long)joinPoint.getArgs()[0];
+		ProjectUpdate projectUpdate = (ProjectUpdate)joinPoint.getArgs()[1];
+		User user = (User)joinPoint.getArgs()[2];
 		String name = projectUpdate.getName();
 		ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
 		if(projectDetail.getName().equals(name)) return;
-		
-		Map<String,Object> updateResourceParam = new HashMap<>();
-		updateResourceParam.put("resourceUrl", assembleResourceUrl(TYPE_PROJECT, projectId));
-		updateResourceParam.put("resourceName", projectUpdate.getName());
-		updateResourceParam.put("displayName", projectUpdate.getName());
-		updateResourceParam.put("updatedByUsername", user.getUsername());
-		String updateResourceReStr = HttpClientUtil.doPostJson(CRM_SERVER + RESOURCE_UPDATE_URL, JSON.toJSONString(updateResourceParam));
-		Map<String,Object> updateResourceRe = JSON.parseObject(updateResourceReStr, new TypeReference<Map<String,Object>>(){}.getType());
-		if(updateResourceRe == null || !Integer.valueOf(0).equals(updateResourceRe.get("status"))) {
-			optLogger.info("更新CRM资源失败，re={}", updateResourceReStr);
-			throw new RuntimeException("更新CRM资源失败");
-		}
-		
-		//刘飞 更改角色名
+
+		updateCrmResource(assembleResourceUrl(TYPE_PROJECT, projectId), projectUpdate.getName(), user.getUsername());
+		updateCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), assembleRoleName(TYPE_PROJECT, projectUpdate.getName()), user.getUsername());
 	}
 
 	private void createProject(JoinPoint joinPoint, Object methodRe) {
 		ProjectCreat projectCreat = (ProjectCreat)joinPoint.getArgs()[0];
 		User user = (User)joinPoint.getArgs()[1];
-		
-		Map<String,Object> resourceParam = new HashMap<>();
-		resourceParam.put("resourceTypeId", CRM_RESOURCE_TYPE_ID);
-		resourceParam.put("parentResourceId", CRM_RESOURCE_MENU);
-		resourceParam.put("resourceName", projectCreat.getName());
 		ProjectInfo projectInfo = (ProjectInfo)methodRe;
-		resourceParam.put("resourceUrl", assembleResourceUrl(TYPE_PROJECT, projectInfo.getId()));
-		resourceParam.put("systemCode", CRM_RESOURCE_SYSTEM_CODE_CRM);
-		resourceParam.put("displayName", projectCreat.getName());
-		resourceParam.put("createdByUsername", user.getUsername());
-		String resourcePostReStr = HttpClientUtil.doPostJson(CRM_SERVER + RESOURCE_CREATE_URL, JSON.toJSONString(resourceParam));
-		Map<String,Object> resourcePostRe = JSON.parseObject(resourcePostReStr, new TypeReference<Map<String,Object>>(){}.getType());
-		if(resourcePostRe == null || Integer.valueOf(0).equals(resourcePostRe.get("status"))) {
-			optLogger.error("创建CRM资源失败,erroMsg={}", resourcePostRe.get("msg"));
-			throw new RuntimeException("创建CRM资源失败");
-		}
 		
-		//创建角色
-		Map<String,Object> roleParam = new HashMap<>();
+		createCrmResource(CRM_RESOURCE_MENU_DAVINCI, null, projectCreat.getName(), assembleResourceUrl(TYPE_PROJECT, projectInfo.getId()), 0, user.getUsername());
+		createCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectInfo.getId()), assembleRoleName(TYPE_PROJECT, projectInfo.getName()), CRM_ROLE_MENU, null, 0, user.getUsername());
+	}
+	
+	private void relCrmRoleResource(String createdByUsername, List<CrmRoleResourceCreate> rel) {
+		if(CollectionUtils.isEmpty(rel)) return;
+		String relRoleResourceReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + ROLE_RESOURCE_REL_URL + "?createdByUsername=" + createdByUsername, JSON.toJSONString(rel));
+		Map<String,Object> relRoleResourceRe = JSON.parseObject(relRoleResourceReStr, new TypeReference<Map<String,Object>>(){}.getType());
+		if(relRoleResourceRe == null || !Integer.valueOf(0).equals(relRoleResourceRe.get("status"))) {
+			optLogger.info("CRM角色和资源关联失败，re={}", relRoleResourceReStr);
+			log.info("CRM角色和资源关联失败，re={}", relRoleResourceReStr);
+			throw new RuntimeException("CRM角色和资源关联失败");
+		}
+	}
+	
+	private void deleteCrmRole(String roleEnglish, String deleteByUsername) {
+		Map<String,Object> deleteRoleParam = new HashMap<>();
+		deleteRoleParam.put("roleEnglish", roleEnglish);
+		deleteRoleParam.put("deleteByUsername", deleteByUsername);
+		String deleteRoleReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + ROLE_DELETE_URL, JSON.toJSONString(deleteRoleParam));
+		Map<String,Object> deleteRoleRe = JSON.parseObject(deleteRoleReStr, new TypeReference<Map<String,Object>>(){}.getType());
+		if(deleteRoleRe == null || !Integer.valueOf(0).equals(deleteRoleRe.get("status"))) {
+			optLogger.info("删除CRM角色失败，re={}", deleteRoleReStr);
+			log.info("删除CRM角色失败，re={}", deleteRoleReStr);
+			throw new RuntimeException("删除CRM角色失败");
+		}
+	}
+	
+	private void deleteCrmResource(String resourceUrl, String deleteByUsername) {
+		Map<String,Object> deleteResourceParam = new HashMap<>();
+		deleteResourceParam.put("resourceUrl", resourceUrl);
+		deleteResourceParam.put("deleteByUsername", deleteByUsername);
+		String deleteResourceReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + RESOURCE_DELETE_URL, JSON.toJSONString(deleteResourceParam));
+		Map<String,Object> deleteResourceRe = JSON.parseObject(deleteResourceReStr, new TypeReference<Map<String,Object>>(){}.getType());
+		if(deleteResourceRe == null || !Integer.valueOf(0).equals(deleteResourceRe.get("status"))) {
+			optLogger.info("删除CRM资源失败，re={}", deleteResourceReStr);
+			log.info("删除CRM资源失败，re={}", deleteResourceReStr);
+			throw new RuntimeException("删除CRM资源失败");
+		}
+	}
+	
+	private void updateCrmRole(String roleEnglish, String roleName, String updatedByUsername) {
+		Map<String,Object> updateRoleParam = new HashMap<>();
+		updateRoleParam.put("roleEnglish", roleEnglish);
+		updateRoleParam.put("roleName", roleName);
+		updateRoleParam.put("updatedByUsername", updatedByUsername);
+		String updateRoleReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + ROLE_UPDATE_URL, JSON.toJSONString(updateRoleParam));
+		Map<String,Object> updateRoleRe = JSON.parseObject(updateRoleReStr, new TypeReference<Map<String,Object>>(){}.getType());
+		if(updateRoleRe == null || !Integer.valueOf(0).equals(updateRoleRe.get("status"))) {
+			optLogger.info("更新CRM角色失败，re={}", updateRoleRe);
+			log.info("更新CRM角色失败，re={}", updateRoleRe);
+			throw new RuntimeException("更新CRM角色失败");
+		}
+	}
+	private void updateCrmResource(String resourceUrl, String resourceName, String updatedByUsername) {
+		Map<String,Object> updateResourceParam = new HashMap<>();
+		updateResourceParam.put("resourceUrl", resourceUrl);
+		updateResourceParam.put("resourceName", resourceName);
+		updateResourceParam.put("displayName", resourceName);
+		updateResourceParam.put("updatedByUsername", updatedByUsername);
+		String updateResourceReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + RESOURCE_UPDATE_URL, JSON.toJSONString(updateResourceParam));
+		Map<String,Object> updateResourceRe = JSON.parseObject(updateResourceReStr, new TypeReference<Map<String,Object>>(){}.getType());
+		if(updateResourceRe == null || !Integer.valueOf(0).equals(updateResourceRe.get("status"))) {
+			optLogger.info("更新CRM资源失败，re={}", updateResourceReStr);
+			log.info("更新CRM资源失败，re={}", updateResourceReStr);
+			throw new RuntimeException("更新CRM资源失败");
+		}
+	}
+	
+	private void createCrmRole(String roleEnglish, String roleName, Integer parentRoleId, String parentRoleEnglish,
+			Integer isLeaf, String createdByUsername) {
+		Map<String, Object> roleParam = new HashMap<>();
 		roleParam.put("roleGroupId", CRM_ROLE_GROUP_ID);
-		roleParam.put("roleEnglish", assembleRoleEnglish(TYPE_PROJECT, projectInfo.getId()));
-		roleParam.put("roleName", assembleRoleName(TYPE_PROJECT, projectInfo.getName()));
-		roleParam.put("parentRoleId", CRM_ROLE_MENU);
-		roleParam.put("isLeaf", 0);
-		roleParam.put("createdByUsername", user.getUsername());
-		String rolePostReStr = HttpClientUtil.doPostJson(CRM_SERVER + ROLE_CREATE_URL, JSON.toJSONString(roleParam));
-		Map<String,Object> rolePostRe = JSON.parseObject(rolePostReStr, new TypeReference<Map<String,Object>>(){}.getType());
-		if(rolePostRe == null || Integer.valueOf(0).equals(rolePostRe.get("status"))) {
-			optLogger.error("创建CRM角色失败,erroMsg={}", rolePostRe.get("msg"));
+		roleParam.put("roleEnglish", roleEnglish);
+		roleParam.put("roleName", roleName);
+		roleParam.put("parentRoleId", parentRoleId);
+		roleParam.put("parentRoleEnglish", parentRoleEnglish);
+		roleParam.put("isLeaf", isLeaf);
+		roleParam.put("createdByUsername", createdByUsername);
+		String rolePostReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + ROLE_CREATE_URL, JSON.toJSONString(roleParam));
+		Map<String, Object> rolePostRe = JSON.parseObject(rolePostReStr, new TypeReference<Map<String, Object>>() {
+		}.getType());
+		if (rolePostRe == null || !Integer.valueOf(0).equals(rolePostRe.get("status"))) {
+			optLogger.error("创建CRM角色失败,re={}", rolePostReStr);
+			log.error("创建CRM角色失败,re={}", rolePostReStr);
 			throw new RuntimeException("创建CRM角色失败");
 		}
 	}
+	
+	private void createCrmResource(Integer parentResourceId, String parentResourceUrl, String resourceName, String resourceUrl, Integer isLeaf, String createdByUsername, String resourceDesc) {
+		Map<String,Object> resourceParam = new HashMap<>();
+		resourceParam.put("resourceTypeId", CRM_RESOURCE_TYPE_ID);
+		resourceParam.put("parentResourceId", parentResourceId);
+		resourceParam.put("parentResourceUrl", parentResourceUrl);
+		resourceParam.put("resourceName", resourceName);
+		resourceParam.put("resourceUrl", resourceUrl);
+		resourceParam.put("resourceDesc", resourceDesc);
+		resourceParam.put("systemCode", CRM_RESOURCE_SYSTEM_CODE_CRM);
+		resourceParam.put("isLeaf", isLeaf);
+		resourceParam.put("displayName", resourceName);
+		resourceParam.put("createdByUsername", createdByUsername);
+		String resourcePostReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + RESOURCE_CREATE_URL, JSON.toJSONString(resourceParam));
+		Map<String,Object> resourcePostRe = JSON.parseObject(resourcePostReStr, new TypeReference<Map<String,Object>>(){}.getType());
+		if(resourcePostRe == null || !Integer.valueOf(0).equals(resourcePostRe.get("status"))) {
+			log.error("创建CRM资源失败,re={}", resourcePostReStr);
+			throw new RuntimeException("创建CRM资源失败");
+		}
+	}
 
+	private void createCrmResource(Integer parentResourceId, String parentResourceUrl, String resourceName,
+			String resourceUrl, Integer isLeaf, String createdByUsername) {
+		createCrmResource(parentResourceId, parentResourceUrl, resourceName, resourceUrl, isLeaf, createdByUsername,
+				null);
+	}
 	private String assembleResourceUrl(String type, Long id) {
 		return "DAVINCI" + "_" + type + "_" + id;
 	}
@@ -261,5 +418,12 @@ public class CrmResourceAndRoleAspect {
 	}
 	private String assembleRoleName(String type, String name) {
 		return name + "_" + type + "_" + "管理员";
+	}
+	@Data
+	class CrmRoleResourceCreate{
+		private Integer roleId;
+		private String roleEnglish;
+		private Integer resourceId;
+		private String resourceUrl;
 	}
 }

@@ -83,6 +83,8 @@ public class CrmResourceAndRoleAspect {
 	private static final String TYPE_DASHBOARD_PORTAL = "DASHBOARD_PORTAL";
 	private static final String TYPE_DASHBOARD = "DASHBOARD";
 	
+	private static final Long DAVINCI_ORGANIZE_CRM_ID = 3l;
+	
 	private static final Integer CRM_RESOURCE_TYPE_ID = 2;
 	private static final Integer CRM_RESOURCE_MENU_SYSTEMMANAGER = 1;
 	private static final Integer CRM_RESOURCE_MENU_DAVINCI = 1802;
@@ -302,6 +304,7 @@ public class CrmResourceAndRoleAspect {
 		User user = (User)joinPoint.getArgs()[1];
 		ProjectInfo projectInfo = (ProjectInfo)methodRe;
 		
+		if(!projectCreat.getOrgId().equals(DAVINCI_ORGANIZE_CRM_ID)) return;
 		createCrmResource(CRM_RESOURCE_MENU_DAVINCI, null, projectCreat.getName(), assembleResourceUrl(TYPE_PROJECT, projectInfo.getId()), 0, user.getUsername());
 		createCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectInfo.getId()), assembleRoleName(TYPE_PROJECT, projectInfo.getName()), CRM_ROLE_MENU, null, 0, user.getUsername());
 	}

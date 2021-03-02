@@ -86,6 +86,7 @@ public class CrmResourceAndRoleAspect {
 	private static final Integer CRM_RESOURCE_TYPE_ID = 2;
 	private static final Integer CRM_RESOURCE_MENU_SYSTEMMANAGER = 1;
 	private static final Integer CRM_RESOURCE_MENU_DAVINCI = 1802;
+	private static final Integer CRM_DAVINCI_AUTH_RESOURCE_ID = 1841;
 	private static final String CRM_RESOURCE_SYSTEM_CODE_CRM = "CRM";
 	private static final Integer CRM_ROLE_MENU = 407;
 	private static final Integer CRM_ROLE_GROUP_ID = 1;
@@ -268,6 +269,11 @@ public class CrmResourceAndRoleAspect {
 		dashboardPortalResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
 		dashboardPortalResourceRel.setResourceUrl(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortal.getProjectId()));
 		rel.add(dashboardPortalResourceRel);
+		
+		CrmRoleResourceCreate authResourceRel = new CrmRoleResourceCreate();
+		authResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		authResourceRel.setResourceId(CRM_DAVINCI_AUTH_RESOURCE_ID);
+		rel.add(authResourceRel);
 		
 		relCrmRoleResource(user.getUsername(), rel);
 	}

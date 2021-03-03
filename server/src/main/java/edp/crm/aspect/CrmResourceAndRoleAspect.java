@@ -283,6 +283,9 @@ public class CrmResourceAndRoleAspect {
 	private void deleteProject(JoinPoint joinPoint, Object methodRe) {
 		Long projectId = (Long) joinPoint.getArgs()[0];
 		User user = (User) joinPoint.getArgs()[1];
+		ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
+		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectDetail.getOrgId())) return;
+		
 		deleteCrmResource(assembleResourceUrl(TYPE_PROJECT, projectId), user.getUsername());
 		deleteCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), user.getUsername());
 	}
@@ -294,6 +297,7 @@ public class CrmResourceAndRoleAspect {
 		String name = projectUpdate.getName();
 		ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
 		if(projectDetail.getName().equals(name)) return;
+		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectDetail.getOrgId())) return;
 
 		updateCrmResource(assembleResourceUrl(TYPE_PROJECT, projectId), projectUpdate.getName(), user.getUsername());
 		updateCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), assembleRoleName(TYPE_PROJECT, projectUpdate.getName()), user.getUsername());
@@ -303,8 +307,8 @@ public class CrmResourceAndRoleAspect {
 		ProjectCreat projectCreat = (ProjectCreat)joinPoint.getArgs()[0];
 		User user = (User)joinPoint.getArgs()[1];
 		ProjectInfo projectInfo = (ProjectInfo)methodRe;
+		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectCreat.getOrgId())) return;
 		
-		if(!projectCreat.getOrgId().equals(DAVINCI_ORGANIZE_CRM_ID)) return;
 		createCrmResource(CRM_RESOURCE_MENU_DAVINCI, null, projectCreat.getName(), assembleResourceUrl(TYPE_PROJECT, projectInfo.getId()), 0, user.getUsername());
 		createCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectInfo.getId()), assembleRoleName(TYPE_PROJECT, projectInfo.getName()), CRM_ROLE_MENU, null, 0, user.getUsername());
 	}

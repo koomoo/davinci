@@ -110,6 +110,7 @@ public class CrmResourceAndRoleAspect {
 	
 	@Pointcut(
     		"execution(* edp.davinci.service.impl.ProjectServiceImpl.updateProject(..)) "
+    		+ "|| execution(* edp.davinci.service.impl.ProjectServiceImpl.deleteProject(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardPortalServiceImpl.updateDashboardPortal(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardServiceImpl.updateDashboards(..)) "
     		)
@@ -118,7 +119,6 @@ public class CrmResourceAndRoleAspect {
 	
 	//切点
     @Pointcut("execution(* edp.davinci.service.impl.ProjectServiceImpl.createProject(..)) "
-    		+ "|| execution(* edp.davinci.service.impl.ProjectServiceImpl.deleteProject(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardPortalServiceImpl.createDashboardPortal(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardPortalServiceImpl.deleteDashboardPortal(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardServiceImpl.createDashboard(..)) "
@@ -136,6 +136,8 @@ public class CrmResourceAndRoleAspect {
 			//project
 			if(PROJECT_UPDATE_METHOD_NAME.equals(methodName)) {
 				updateProject(joinPoint);
+			}else if(PROJECT_DELETE_METHOD_NAME.equals(methodName)) {
+				deleteProject(joinPoint);
 			}
 		}else if(DASHBOARD_PORTAL_SERVICE_NAME.equals(serviceName)) {
 			if(DASHBOARD_PORTAL_UPDATE_METHOD_NAME.equals(methodName)) {
@@ -157,9 +159,6 @@ public class CrmResourceAndRoleAspect {
     			if(PROJECT_CREAT_METHOD_NAME.equals(methodName)) {
     				//增
     				createProject(joinPoint, methodRe);
-    			}else if(PROJECT_DELETE_METHOD_NAME.equals(methodName)) {
-    				//删
-    				deleteProject(joinPoint, methodRe);
     			}
     		}else if(DASHBOARD_PORTAL_SERVICE_NAME.equals(className)) {
     			//dashboard_portal
@@ -237,7 +236,7 @@ public class CrmResourceAndRoleAspect {
 		updateCrmResource(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortalUpdate.getId()),
 				dashboardPortalUpdate.getName(), user.getUsername());
 		updateCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalUpdate.getId()),
-				assembleRoleName(TYPE_DASHBOARD_PORTAL, dashboardPortalUpdate.getName()), user.getUsername());
+				dashboardPortalUpdate.getName() + "管理员", user.getUsername());
 	}
 
 	private void createDashboardPortal(JoinPoint joinPoint, Object methodRe) {
@@ -248,7 +247,7 @@ public class CrmResourceAndRoleAspect {
 				dashboardPortalCreat.getName(), assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()), 0,
 				user.getUsername());
 		createCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
-				assembleRoleName(TYPE_DASHBOARD_PORTAL, dashboardPortalCreat.getName()), null,
+				dashboardPortalCreat.getName() + "管理员", null,
 				assembleRoleEnglish(TYPE_PROJECT, dashboardPortalCreat.getProjectId()), 0, user.getUsername());
 		
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
@@ -280,9 +279,10 @@ public class CrmResourceAndRoleAspect {
 		relCrmRoleResource(user.getUsername(), rel);
 	}
 
-	private void deleteProject(JoinPoint joinPoint, Object methodRe) {
+	private void deleteProject(JoinPoint joinPoint) {
 		Long projectId = (Long) joinPoint.getArgs()[0];
 		User user = (User) joinPoint.getArgs()[1];
+		
 		ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
 		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectDetail.getOrgId())) return;
 		
@@ -300,7 +300,7 @@ public class CrmResourceAndRoleAspect {
 		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectDetail.getOrgId())) return;
 
 		updateCrmResource(assembleResourceUrl(TYPE_PROJECT, projectId), projectUpdate.getName(), user.getUsername());
-		updateCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), assembleRoleName(TYPE_PROJECT, projectUpdate.getName()), user.getUsername());
+		updateCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), projectUpdate.getName(), user.getUsername());
 	}
 
 	private void createProject(JoinPoint joinPoint, Object methodRe) {
@@ -310,7 +310,7 @@ public class CrmResourceAndRoleAspect {
 		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectCreat.getOrgId())) return;
 		
 		createCrmResource(CRM_RESOURCE_MENU_DAVINCI, null, projectCreat.getName(), assembleResourceUrl(TYPE_PROJECT, projectInfo.getId()), 0, user.getUsername());
-		createCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectInfo.getId()), assembleRoleName(TYPE_PROJECT, projectInfo.getName()), CRM_ROLE_MENU, null, 0, user.getUsername());
+		createCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectInfo.getId()), projectInfo.getName(), CRM_ROLE_MENU, null, 0, user.getUsername());
 	}
 	
 	private void relCrmRoleResource(String createdByUsername, List<CrmRoleResourceCreate> rel) {
@@ -428,9 +428,6 @@ public class CrmResourceAndRoleAspect {
 	}
 	private String assembleRoleEnglish(String type, Long id) {
 		return "ROLE_DAVINCI" + "_" + type + "_" + id;
-	}
-	private String assembleRoleName(String type, String name) {
-		return name + "_" + type + "_" + "管理员";
 	}
 	@Data
 	class CrmRoleResourceCreate{

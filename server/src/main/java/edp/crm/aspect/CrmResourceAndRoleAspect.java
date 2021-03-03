@@ -52,6 +52,7 @@ import edp.davinci.dto.shareDto.ShareEntity;
 import edp.davinci.model.Dashboard;
 import edp.davinci.model.DashboardPortal;
 import edp.davinci.model.User;
+import edp.davinci.service.DashboardPortalService;
 import edp.davinci.service.DashboardService;
 import edp.davinci.service.ProjectService;
 import edp.davinci.service.share.ShareMode;
@@ -68,6 +69,7 @@ public class CrmResourceAndRoleAspect {
 	private static final String PROJECT_CREAT_METHOD_NAME = "createProject";
 	private static final String PROJECT_UPDATE_METHOD_NAME = "updateProject";
 	private static final String PROJECT_DELETE_METHOD_NAME = "deleteProject";
+	private static final String PROJECT_TRANSFER_METHOD_NAME = "transferPeoject";
 	
 	private static final String DASHBOARD_PORTAL_SERVICE_NAME = "DashboardPortalServiceImpl";
 	private static final String DASHBOARD_PORTAL_CREAT_METHOD_NAME = "createDashboardPortal";
@@ -106,6 +108,8 @@ public class CrmResourceAndRoleAspect {
 	@Autowired
 	private ProjectService projectService;
 	@Autowired
+	private DashboardPortalService dashboardPortalService;
+	@Autowired
     private DashboardService dashboardService;
 	
 	@Pointcut(
@@ -119,6 +123,7 @@ public class CrmResourceAndRoleAspect {
 	
 	//切点
     @Pointcut("execution(* edp.davinci.service.impl.ProjectServiceImpl.createProject(..)) "
+    		+ "|| execution(* edp.davinci.service.impl.ProjectServiceImpl.transferPeoject(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardPortalServiceImpl.createDashboardPortal(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardPortalServiceImpl.deleteDashboardPortal(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardServiceImpl.createDashboard(..)) "
@@ -127,92 +132,61 @@ public class CrmResourceAndRoleAspect {
     public void afterPointcut() {
     }
     
-    @Before("beforePointcut()")
-    public void beforeMethod(JoinPoint joinPoint) throws Exception {
-    		//这里要先查询表里
-    		String serviceName = joinPoint.getTarget().getClass().getSimpleName();
+	@Before("beforePointcut()")
+	public void beforeMethod(JoinPoint joinPoint) throws Exception {
+		String serviceName = joinPoint.getTarget().getClass().getSimpleName();
 		String methodName = joinPoint.getSignature().getName();
-		if(PROJECT_SERVICE_NAME.equals(serviceName)) {
-			//project
-			if(PROJECT_UPDATE_METHOD_NAME.equals(methodName)) {
-				updateProject(joinPoint);
-			}else if(PROJECT_DELETE_METHOD_NAME.equals(methodName)) {
-				deleteProject(joinPoint);
+		if (PROJECT_SERVICE_NAME.equals(serviceName)) {
+			if (PROJECT_UPDATE_METHOD_NAME.equals(methodName)) {
+				updateProject((Long) joinPoint.getArgs()[0], ((ProjectUpdate) joinPoint.getArgs()[1]).getName(),
+						(User) joinPoint.getArgs()[2]);
+			} else if (PROJECT_DELETE_METHOD_NAME.equals(methodName)) {
+				deleteProject((Long) joinPoint.getArgs()[0], (User) joinPoint.getArgs()[1]);
 			}
-		}else if(DASHBOARD_PORTAL_SERVICE_NAME.equals(serviceName)) {
-			if(DASHBOARD_PORTAL_UPDATE_METHOD_NAME.equals(methodName)) {
-				updateDashboardPortal(joinPoint);
+		} else if (DASHBOARD_PORTAL_SERVICE_NAME.equals(serviceName)) {
+			if (DASHBOARD_PORTAL_UPDATE_METHOD_NAME.equals(methodName)) {
+				updateDashboardPortal(((DashboardPortalUpdate) joinPoint.getArgs()[0]).getId(),
+						((DashboardPortalUpdate) joinPoint.getArgs()[0]).getName(),
+						((User) joinPoint.getArgs()[1]).getUsername());
 			}
-		}else if(DASHBOARD_SERVICE_NAME.equals(serviceName)) {
-			if(DASHBOARD_UPDATE_METHOD_NAME.equals(methodName)) {
-				updateDashboard(joinPoint);
+		} else if (DASHBOARD_SERVICE_NAME.equals(serviceName)) {
+			if (DASHBOARD_UPDATE_METHOD_NAME.equals(methodName)) {
+				updateCrmDashboard((DashboardDto[]) joinPoint.getArgs()[1],
+						((User) joinPoint.getArgs()[2]).getUsername());
 			}
 		}
-    }
+	}
     
-    @AfterReturning(pointcut="afterPointcut()", returning="methodRe")
-    public void afterMethod(JoinPoint joinPoint, Object methodRe) throws Exception {
-    		String className = joinPoint.getTarget().getClass().getSimpleName();
-    		String methodName = joinPoint.getSignature().getName();
-    		if(PROJECT_SERVICE_NAME.equals(className)) {
-    			//project
-    			if(PROJECT_CREAT_METHOD_NAME.equals(methodName)) {
-    				//增
-    				createProject(joinPoint, methodRe);
-    			}
-    		}else if(DASHBOARD_PORTAL_SERVICE_NAME.equals(className)) {
-    			//dashboard_portal
-    			if(DASHBOARD_PORTAL_CREAT_METHOD_NAME.equals(methodName)) {
-    				//增
-    				createDashboardPortal(joinPoint, methodRe);
-    			}else if(DASHBOARD_PORTAL_DELETE_METHOD_NAME.equals(methodName)) {
-    				//删
-    				deleteDashboardPortal(joinPoint, methodRe);
-    			}
-    		}else if(DASHBOARD_SERVICE_NAME.equals(className)) {
-    			//dashboard
-    			if(DASHBOARD_CREAT_METHOD_NAME.equals(methodName)) {
-    				//增
-    				createDashboard(joinPoint, methodRe);
-    			}else if(DASHBOARD_DELETE_METHOD_NAME.equals(methodName)) {
-    				//删
-    				deleteDashboard(joinPoint, methodRe);
-    			}
-    		}
-    }
-
-	private void deleteDashboard(JoinPoint joinPoint, Object methodRe) {
-		Long id = (Long)joinPoint.getArgs()[0];
-		User user = (User)joinPoint.getArgs()[1];
-		
-		deleteCrmResource(assembleResourceUrl(TYPE_DASHBOARD, id), user.getUsername());
-	}
-	
-	private void updateDashboard(JoinPoint joinPoint) {
-		DashboardDto[] dashboards = (DashboardDto[]) joinPoint.getArgs()[1];
-		User user = (User) joinPoint.getArgs()[2];
-
-		for (DashboardDto dashboard : dashboards) {
-			updateCrmResource(assembleResourceUrl(TYPE_DASHBOARD, dashboard.getId()), dashboard.getName(),
-					user.getUsername());
+	@AfterReturning(pointcut = "afterPointcut()", returning = "methodRe")
+	public void afterMethod(JoinPoint joinPoint, Object methodRe) throws Exception {
+		String className = joinPoint.getTarget().getClass().getSimpleName();
+		String methodName = joinPoint.getSignature().getName();
+		Object[] args = joinPoint.getArgs();
+		if (PROJECT_SERVICE_NAME.equals(className)) {
+			if (PROJECT_CREAT_METHOD_NAME.equals(methodName)) {
+				createProject(((ProjectInfo) methodRe).getId(), ((ProjectCreat) args[0]).getName(),
+						((User) args[1]).getUsername());
+			} else if (PROJECT_TRANSFER_METHOD_NAME.equals(methodName)) {
+				// 刘飞 这里处理
+				transferProject(joinPoint);
+			}
+		} else if (DASHBOARD_PORTAL_SERVICE_NAME.equals(className)) {
+			if (DASHBOARD_PORTAL_CREAT_METHOD_NAME.equals(methodName)) {
+				createDashboardPortal(((DashboardPortalCreate) args[0]).getProjectId(),
+						((DashboardPortalCreate) args[0]).getName(), ((DashboardPortal) methodRe).getId(),
+						((User) args[1]).getUsername());
+			} else if (DASHBOARD_PORTAL_DELETE_METHOD_NAME.equals(methodName)) {
+				deleteDashboardPortal((Long) joinPoint.getArgs()[0], (User) joinPoint.getArgs()[1]);
+			}
+		} else if (DASHBOARD_SERVICE_NAME.equals(className)) {
+			if (DASHBOARD_CREAT_METHOD_NAME.equals(methodName)) {
+				createDashboard(((DashboardCreate) args[0]).getDashboardPortalId(),
+						((DashboardCreate) args[0]).getName(), ((Dashboard) methodRe).getId(), (User) args[1]);
+			} else if (DASHBOARD_DELETE_METHOD_NAME.equals(methodName)) {
+				// 删
+				deleteDashboard((Long) args[0], ((User) args[1]).getUsername());
+			}
 		}
-	}
-
-	private void createDashboard(JoinPoint joinPoint, Object methodRe) throws Exception {
-		DashboardCreate dashboardCreate = (DashboardCreate) joinPoint.getArgs()[0];
-		User user = (User) joinPoint.getArgs()[1];
-		Dashboard dashboard = (Dashboard) methodRe;
-		createCrmResource(null, assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()),
-				dashboardCreate.getName(), assembleResourceUrl(TYPE_DASHBOARD, dashboard.getId()), 1,
-				user.getUsername(), assembleShareUrl(dashboard.getId(), user));
-
-		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
-		CrmRoleResourceCreate crmRoleResourceCreate = new CrmRoleResourceCreate();
-		crmRoleResourceCreate
-				.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
-		crmRoleResourceCreate.setResourceUrl(assembleResourceUrl(TYPE_DASHBOARD, dashboard.getId()));
-		rel.add(crmRoleResourceCreate);
-		relCrmRoleResource(user.getUsername(), rel);
 	}
 
 	private String assembleShareUrl(Long id, User user) throws Exception {
@@ -223,94 +197,138 @@ public class CrmResourceAndRoleAspect {
 		return "/dav/share.html?shareToken=" + shareResult.getToken() + "#share/dashboard";
 	}
 
-	private void deleteDashboardPortal(JoinPoint joinPoint, Object methodRe) {
-		Long id = (Long) joinPoint.getArgs()[0];
-		User user = (User) joinPoint.getArgs()[1];
-		deleteCrmResource(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, id), user.getUsername());
-		deleteCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, id), user.getUsername());
+	private void transferProject(JoinPoint joinPoint) throws Exception {
+		Long projectId = (Long)joinPoint.getArgs()[0];
+		Long orgId = (Long)joinPoint.getArgs()[1];
+		User user = (User)joinPoint.getArgs()[2];
+		
+		if(DAVINCI_ORGANIZE_CRM_ID.equals(orgId)) {
+			ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
+			//处理项目
+			createProject(projectId, projectDetail.getName(), user.getUsername());
+			//处理dashboard_portal
+			List<DashboardPortal> dashboardPortals = dashboardPortalService.getDashboardPortals(projectId, user);
+			if(CollectionUtils.isEmpty(dashboardPortals)) return;
+			for (DashboardPortal dashboardPortal : dashboardPortals) {
+				createDashboardPortal(projectId, dashboardPortal.getName(), dashboardPortal.getId(), user.getUsername());
+				//处理dashboard
+				List<Dashboard> dashboards = dashboardService.getDashboards(dashboardPortal.getId(), user);
+				if(CollectionUtils.isEmpty(dashboards)) continue;
+				for (Dashboard dashboard : dashboards) {
+					createDashboard(dashboardPortal.getId(), dashboard.getName(), dashboard.getId(), user);
+				}
+			}
+		}else {
+			deleteProject(projectId, user);
+		}
 	}
-
-	private void updateDashboardPortal(JoinPoint joinPoint) {
-		DashboardPortalUpdate dashboardPortalUpdate = (DashboardPortalUpdate) joinPoint.getArgs()[0];
-		User user = (User) joinPoint.getArgs()[1];
-		updateCrmResource(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortalUpdate.getId()),
-				dashboardPortalUpdate.getName(), user.getUsername());
-		updateCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalUpdate.getId()),
-				dashboardPortalUpdate.getName() + "管理员", user.getUsername());
+	
+	private void createProject(Long projectId, String projectName, String username) {
+		createCrmResource(CRM_RESOURCE_MENU_DAVINCI, null, projectName, assembleResourceUrl(TYPE_PROJECT, projectId), 0, username);
+		createCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), projectName, CRM_ROLE_MENU, null, 0, username);
 	}
+	private void updateProject(Long projectId, String projectName, User user) throws Exception {
+		ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
+		if(projectDetail.getName().equals(projectName)) return;
+		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectDetail.getOrgId())) return;
 
-	private void createDashboardPortal(JoinPoint joinPoint, Object methodRe) {
-		DashboardPortalCreate dashboardPortalCreat = (DashboardPortalCreate) joinPoint.getArgs()[0];
-		User user = (User) joinPoint.getArgs()[1];
-		DashboardPortal dashboardPortal = (DashboardPortal) methodRe;
-		createCrmResource(null, assembleResourceUrl(TYPE_PROJECT, dashboardPortalCreat.getProjectId()),
-				dashboardPortalCreat.getName(), assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()), 0,
-				user.getUsername());
-		createCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
-				dashboardPortalCreat.getName() + "管理员", null,
-				assembleRoleEnglish(TYPE_PROJECT, dashboardPortalCreat.getProjectId()), 0, user.getUsername());
-		
-		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
-		CrmRoleResourceCreate crmSystemManageMenuRel = new CrmRoleResourceCreate();
-		crmSystemManageMenuRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		crmSystemManageMenuRel.setResourceId(CRM_RESOURCE_MENU_SYSTEMMANAGER);
-		rel.add(crmSystemManageMenuRel);
-		
-		CrmRoleResourceCreate crmDavinciMenuRel = new CrmRoleResourceCreate();
-		crmDavinciMenuRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		crmDavinciMenuRel.setResourceId(CRM_RESOURCE_MENU_DAVINCI);
-		rel.add(crmDavinciMenuRel);
-		
-		CrmRoleResourceCreate projectResourceRel = new CrmRoleResourceCreate();
-		projectResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		projectResourceRel.setResourceUrl(assembleResourceUrl(TYPE_PROJECT, dashboardPortalCreat.getProjectId()));
-		rel.add(projectResourceRel);
-		
-		CrmRoleResourceCreate dashboardPortalResourceRel = new CrmRoleResourceCreate();
-		dashboardPortalResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		dashboardPortalResourceRel.setResourceUrl(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortal.getProjectId()));
-		rel.add(dashboardPortalResourceRel);
-		
-		CrmRoleResourceCreate authResourceRel = new CrmRoleResourceCreate();
-		authResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		authResourceRel.setResourceId(CRM_DAVINCI_AUTH_RESOURCE_ID);
-		rel.add(authResourceRel);
-		
-		relCrmRoleResource(user.getUsername(), rel);
+		updateCrmResource(assembleResourceUrl(TYPE_PROJECT, projectId), projectName, user.getUsername());
+		updateCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), projectName, user.getUsername());
 	}
-
-	private void deleteProject(JoinPoint joinPoint) {
-		Long projectId = (Long) joinPoint.getArgs()[0];
-		User user = (User) joinPoint.getArgs()[1];
-		
+	
+	private void deleteProject(Long projectId, User user) {
 		ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
 		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectDetail.getOrgId())) return;
 		
 		deleteCrmResource(assembleResourceUrl(TYPE_PROJECT, projectId), user.getUsername());
 		deleteCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), user.getUsername());
-	}
-
-	private void updateProject(JoinPoint joinPoint) throws Exception {
-		Long projectId = (Long)joinPoint.getArgs()[0];
-		ProjectUpdate projectUpdate = (ProjectUpdate)joinPoint.getArgs()[1];
-		User user = (User)joinPoint.getArgs()[2];
-		String name = projectUpdate.getName();
-		ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
-		if(projectDetail.getName().equals(name)) return;
-		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectDetail.getOrgId())) return;
-
-		updateCrmResource(assembleResourceUrl(TYPE_PROJECT, projectId), projectUpdate.getName(), user.getUsername());
-		updateCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectId), projectUpdate.getName(), user.getUsername());
-	}
-
-	private void createProject(JoinPoint joinPoint, Object methodRe) {
-		ProjectCreat projectCreat = (ProjectCreat)joinPoint.getArgs()[0];
-		User user = (User)joinPoint.getArgs()[1];
-		ProjectInfo projectInfo = (ProjectInfo)methodRe;
-		if(!DAVINCI_ORGANIZE_CRM_ID.equals(projectCreat.getOrgId())) return;
 		
-		createCrmResource(CRM_RESOURCE_MENU_DAVINCI, null, projectCreat.getName(), assembleResourceUrl(TYPE_PROJECT, projectInfo.getId()), 0, user.getUsername());
-		createCrmRole(assembleRoleEnglish(TYPE_PROJECT, projectInfo.getId()), projectInfo.getName(), CRM_ROLE_MENU, null, 0, user.getUsername());
+		//级联删除项目下的所有portal
+		List<DashboardPortal> dashboardPortals = dashboardPortalService.getDashboardPortals(projectId, user);
+		if(CollectionUtils.isEmpty(dashboardPortals)) return;
+		for (DashboardPortal dashboardPortal : dashboardPortals) {
+			deleteDashboardPortal(dashboardPortal.getId(), user);
+		}
+	}
+	
+	private void createDashboardPortal(Long projectId, String dashboardPortalName, Long dashboardPortalId, String username) {
+		createCrmResource(null, assembleResourceUrl(TYPE_PROJECT, projectId),
+				dashboardPortalName, assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortalId), 0,
+				username);
+		createCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId),
+				dashboardPortalName + "管理员", null,
+				assembleRoleEnglish(TYPE_PROJECT, projectId), 0, username);
+		
+		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
+		CrmRoleResourceCreate crmSystemManageMenuRel = new CrmRoleResourceCreate();
+		crmSystemManageMenuRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId));
+		crmSystemManageMenuRel.setResourceId(CRM_RESOURCE_MENU_SYSTEMMANAGER);
+		rel.add(crmSystemManageMenuRel);
+		
+		CrmRoleResourceCreate crmDavinciMenuRel = new CrmRoleResourceCreate();
+		crmDavinciMenuRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId));
+		crmDavinciMenuRel.setResourceId(CRM_RESOURCE_MENU_DAVINCI);
+		rel.add(crmDavinciMenuRel);
+		
+		CrmRoleResourceCreate projectResourceRel = new CrmRoleResourceCreate();
+		projectResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId));
+		projectResourceRel.setResourceUrl(assembleResourceUrl(TYPE_PROJECT, projectId));
+		rel.add(projectResourceRel);
+		
+		CrmRoleResourceCreate dashboardPortalResourceRel = new CrmRoleResourceCreate();
+		dashboardPortalResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId));
+		dashboardPortalResourceRel.setResourceUrl(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, projectId));
+		rel.add(dashboardPortalResourceRel);
+		
+		CrmRoleResourceCreate authResourceRel = new CrmRoleResourceCreate();
+		authResourceRel.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId));
+		authResourceRel.setResourceId(CRM_DAVINCI_AUTH_RESOURCE_ID);
+		rel.add(authResourceRel);
+		
+		relCrmRoleResource(username, rel);
+	}
+	
+	private void updateDashboardPortal(Long dashboardPortalId, String dashboardPortalName, String username) {
+		updateCrmResource(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortalId),
+				dashboardPortalName, username);
+		updateCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId),
+				dashboardPortalName + "管理员", username);
+	}
+	
+	private void deleteDashboardPortal(Long dashboardPortalId, User user) {
+		deleteCrmResource(assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortalId), user.getUsername());
+		deleteCrmRole(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId), user.getUsername());
+		
+		List<Dashboard> dashboards = dashboardService.getDashboards(dashboardPortalId, user);
+		if(CollectionUtils.isEmpty(dashboards)) return;
+		for (Dashboard dashboard : dashboards) {
+			deleteDashboard(dashboard.getId(), user.getUsername());
+		}
+	}
+	
+	private void createDashboard(Long dashboardPortalId, String dashboardName, Long dashboardId, User user) throws Exception {
+		createCrmResource(null, assembleResourceUrl(TYPE_DASHBOARD_PORTAL, dashboardPortalId),
+				dashboardName, assembleResourceUrl(TYPE_DASHBOARD, dashboardId), 1,
+				user.getUsername(), assembleShareUrl(dashboardId, user));
+
+		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
+		CrmRoleResourceCreate crmRoleResourceCreate = new CrmRoleResourceCreate();
+		crmRoleResourceCreate
+				.setRoleEnglish(assembleRoleEnglish(TYPE_DASHBOARD_PORTAL, dashboardPortalId));
+		crmRoleResourceCreate.setResourceUrl(assembleResourceUrl(TYPE_DASHBOARD, dashboardId));
+		rel.add(crmRoleResourceCreate);
+		relCrmRoleResource(user.getUsername(), rel);
+	}
+	
+	private void updateCrmDashboard(DashboardDto[] dashboards, String username) {
+		for (DashboardDto dashboard : dashboards) {
+			updateCrmResource(assembleResourceUrl(TYPE_DASHBOARD, dashboard.getId()), dashboard.getName(),
+					username);
+		}
+	}
+	
+	private void deleteDashboard(Long dashboardId, String username) {
+		deleteCrmResource(assembleResourceUrl(TYPE_DASHBOARD, dashboardId), username);
 	}
 	
 	private void relCrmRoleResource(String createdByUsername, List<CrmRoleResourceCreate> rel) {

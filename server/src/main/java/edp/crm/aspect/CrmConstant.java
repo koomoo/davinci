@@ -9,9 +9,9 @@ public class CrmConstant {
 	
 	public static final Integer CRM_RESOURCE_TYPE_ID = 2;
 	public static final Integer CRM_RESOURCE_MENU_SYSTEMMANAGER = 1;
-	public static final Integer CRM_RESOURCE_MENU_DAVINCI = 1802;
+	public static final Integer CRM_RESOURCE_MENU_DAVINCI = 0;
 	public static final Integer CRM_DAVINCI_AUTH_RESOURCE_ID = 1841;
-	public static final String CRM_RESOURCE_SYSTEM_CODE_CRM = "CRM";
+	public static final String CRM_RESOURCE_SYSTEM_CODE_CRM = "DAVINCI";
 	public static final Integer CRM_ROLE_MENU = 407;
 	public static final Integer CRM_ROLE_GROUP_ID = 1;
 }

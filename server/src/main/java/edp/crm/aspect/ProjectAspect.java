@@ -14,12 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import edp.davinci.core.enums.LogNameEnum;
+import edp.davinci.dto.organizationDto.OrganizationInfo;
 import edp.davinci.dto.projectDto.ProjectCreat;
 import edp.davinci.dto.projectDto.ProjectInfo;
 import edp.davinci.dto.projectDto.ProjectUpdate;
 import edp.davinci.model.DashboardPortal;
 import edp.davinci.model.User;
 import edp.davinci.service.DashboardPortalService;
+import edp.davinci.service.OrganizationService;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -35,6 +37,8 @@ public class ProjectAspect {
 	private DashboardPortalService dashboardPortalService;
 	@Autowired
 	private DashboardPortalAspect dashboardPortalAspect;
+	@Autowired
+	private OrganizationService organizationService;
 	// 切点
 	@Pointcut("execution(* edp.davinci.service.impl.ProjectServiceImpl.deleteProject(..)) ")
 	public void beforePointcut() {
@@ -74,7 +78,6 @@ public class ProjectAspect {
 		CrmResourceAndRoleUtil.deleteCrmRole(
 				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_PROJECT, projectId), user.getUsername());
 		
-		//刘飞同步删除dashboard_portal
 		List<DashboardPortal> dashboardPortals = dashboardPortalService.getDashboardPortals(projectId, user);
 		if(CollectionUtils.isEmpty(dashboardPortals)) return;
 		dashboardPortals.forEach(dashboardPortal -> {
@@ -101,7 +104,10 @@ public class ProjectAspect {
 		User user = (User) joinPoint.getArgs()[1];
 		ProjectInfo projectInfo = (ProjectInfo) methodRe;
 
-		CrmResourceAndRoleUtil.createCrmResource(CrmConstant.CRM_RESOURCE_MENU_DAVINCI, null, projectCreat.getName(),
+		OrganizationInfo organization = organizationService.getOrganization(projectCreat.getOrgId(), user);
+		String resourceName = organization != null ? organization.getName() : "" + "-" + projectCreat.getName();
+				
+		CrmResourceAndRoleUtil.createCrmResource(CrmConstant.CRM_RESOURCE_MENU_DAVINCI, null, resourceName,
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_PROJECT, projectInfo.getId()), 0,
 				user.getUsername());
 		CrmResourceAndRoleUtil.createCrmRole(

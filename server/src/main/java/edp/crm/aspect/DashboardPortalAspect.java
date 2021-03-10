@@ -140,7 +140,7 @@ public class DashboardPortalAspect {
 		dashboardPortalResourceRel.setRoleEnglish(CrmResourceAndRoleUtil
 				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
 		dashboardPortalResourceRel.setResourceUrl(CrmResourceAndRoleUtil
-				.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getProjectId()));
+				.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
 		rel.add(dashboardPortalResourceRel);
 
 		CrmRoleResourceCreate authResourceRel = new CrmRoleResourceCreate();

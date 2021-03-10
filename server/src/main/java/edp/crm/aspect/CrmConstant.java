@@ -13,5 +13,5 @@ public class CrmConstant {
 	public static final Integer CRM_DAVINCI_AUTH_RESOURCE_ID = 1841;
 	public static final String CRM_RESOURCE_SYSTEM_CODE_CRM = "DAVINCI";
 	public static final Integer CRM_ROLE_MENU = 407;
-	public static final Integer CRM_ROLE_GROUP_ID = 1;
+	public static final Integer CRM_ROLE_GROUP_ID = 6;
 }

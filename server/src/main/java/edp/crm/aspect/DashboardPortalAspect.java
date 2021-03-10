@@ -117,18 +117,6 @@ public class DashboardPortalAspect {
 				0, user.getUsername());
 
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
-		CrmRoleResourceCreate crmSystemManageMenuRel = new CrmRoleResourceCreate();
-		crmSystemManageMenuRel.setRoleEnglish(CrmResourceAndRoleUtil
-				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		crmSystemManageMenuRel.setResourceId(CRM_RESOURCE_MENU_SYSTEMMANAGER);
-		rel.add(crmSystemManageMenuRel);
-
-		CrmRoleResourceCreate crmDavinciMenuRel = new CrmRoleResourceCreate();
-		crmDavinciMenuRel.setRoleEnglish(CrmResourceAndRoleUtil
-				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		crmDavinciMenuRel.setResourceId(CrmConstant.CRM_RESOURCE_MENU_DAVINCI);
-		rel.add(crmDavinciMenuRel);
-
 		CrmRoleResourceCreate projectResourceRel = new CrmRoleResourceCreate();
 		projectResourceRel.setRoleEnglish(CrmResourceAndRoleUtil
 				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));

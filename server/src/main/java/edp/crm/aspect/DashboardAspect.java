@@ -6,12 +6,15 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 
 import edp.core.utils.DateUtils;
+import edp.davinci.core.enums.LogNameEnum;
 import edp.davinci.dto.dashboardDto.DashboardCreate;
 import edp.davinci.dto.dashboardDto.DashboardDto;
 import edp.davinci.dto.shareDto.ShareEntity;
@@ -26,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @Aspect
 @Slf4j
 public class DashboardAspect {
+	private static final Logger optLogger = LoggerFactory.getLogger(LogNameEnum.BUSINESS_OPERATION.getName());
 	private static final String DASHBOARD_CREAT_METHOD_NAME = "createDashboard";
 	private static final String DASHBOARD_UPDATE_METHOD_NAME = "updateDashboards";
 	private static final String DASHBOARD_DELETE_METHOD_NAME = "deleteDashboard";
@@ -75,6 +79,7 @@ public class DashboardAspect {
 				dashboardCreate.getName(), CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()), 1,
 				user.getUsername(), assembleShareUrl(dashboard.getId(), user));
 
+		getShareToken(dashboard.getId(), user);
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
 		CrmRoleResourceCreate crmRoleResourceCreate = new CrmRoleResourceCreate();
 		crmRoleResourceCreate
@@ -85,10 +90,18 @@ public class DashboardAspect {
 	}
     
     private String assembleShareUrl(Long id, User user) throws Exception {
-		ShareEntity shareEntity = new ShareEntity();
+		return "/dav/share.html?shareToken=" + getShareToken(id, user) + "#share/dashboard";
+	}
+    
+    private String getShareToken(Long id, User user) throws Exception {
+    		ShareEntity shareEntity = new ShareEntity();
 		shareEntity.setMode(ShareMode.NORMAL);
 		shareEntity.setExpired(DateUtils.getUtilDate("2050-03-18 17:07:42", "yyyy-MM-dd HH:mm:ss"));
 		ShareResult shareResult = dashboardService.shareDashboard(id, user, shareEntity);
-		return "/dav/share.html?shareToken=" + shareResult.getToken() + "#share/dashboard";
-	}
+		
+		log.debug("token={}", shareResult.getToken());
+		optLogger.debug("token={}", shareResult.getToken());
+		
+		return shareResult.getToken();
+    }
 }

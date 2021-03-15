@@ -7,7 +7,8 @@ public class CrmConstant {
 	
 	public static final Long DAVINCI_ORGANIZE_CRM_ID = 3l;
 	
-	public static final Integer CRM_RESOURCE_TYPE_ID = 2;
+	public static final Integer CRM_RESOURCE_TYPE_ID_MENU = 1;
+	public static final Integer CRM_RESOURCE_TYPE_ID_API = 2;
 	public static final Integer CRM_RESOURCE_MENU_SYSTEMMANAGER = 1;
 	public static final Integer CRM_RESOURCE_MENU_DAVINCI = 0;
 	public static final Integer CRM_DAVINCI_AUTH_RESOURCE_ID = 1841;

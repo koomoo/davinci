@@ -109,34 +109,33 @@ public class DashboardPortalAspect {
 		CrmResourceAndRoleUtil.createCrmResource(null,
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_PROJECT,
 						dashboardPortalCreat.getProjectId()),
-				dashboardPortalCreat.getName(), CrmResourceAndRoleUtil.assembleResourceUrl(
-						CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
-				0, user.getUsername());
+				dashboardPortalCreat.getName(),
+				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
+				0, user.getUsername(), CrmConstant.CRM_RESOURCE_TYPE_ID_MENU);
 		CrmResourceAndRoleUtil.createCrmRole(
-				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL,
-						dashboardPortal.getId()),
-				dashboardPortalCreat.getName() + "管理员", null, CrmResourceAndRoleUtil
-						.assembleRoleEnglish(CrmConstant.TYPE_PROJECT, dashboardPortalCreat.getProjectId()),
+				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
+				dashboardPortalCreat.getName() + "管理员", null, CrmResourceAndRoleUtil.assembleRoleEnglish(
+						CrmConstant.TYPE_PROJECT, dashboardPortalCreat.getProjectId()),
 				0, user.getUsername());
 
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
 		CrmRoleResourceCreate projectResourceRel = new CrmRoleResourceCreate();
-		projectResourceRel.setRoleEnglish(CrmResourceAndRoleUtil
-				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		projectResourceRel.setResourceUrl(CrmResourceAndRoleUtil
-				.assembleResourceUrl(CrmConstant.TYPE_PROJECT, dashboardPortalCreat.getProjectId()));
+		projectResourceRel.setRoleEnglish(
+				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		projectResourceRel.setResourceUrl(CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_PROJECT,
+				dashboardPortalCreat.getProjectId()));
 		rel.add(projectResourceRel);
 
 		CrmRoleResourceCreate dashboardPortalResourceRel = new CrmRoleResourceCreate();
-		dashboardPortalResourceRel.setRoleEnglish(CrmResourceAndRoleUtil
-				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
-		dashboardPortalResourceRel.setResourceUrl(CrmResourceAndRoleUtil
-				.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		dashboardPortalResourceRel.setRoleEnglish(
+				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		dashboardPortalResourceRel.setResourceUrl(
+				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
 		rel.add(dashboardPortalResourceRel);
 
 		CrmRoleResourceCreate authResourceRel = new CrmRoleResourceCreate();
-		authResourceRel.setRoleEnglish(CrmResourceAndRoleUtil
-				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
+		authResourceRel.setRoleEnglish(
+				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()));
 		authResourceRel.setResourceId(CRM_DAVINCI_AUTH_RESOURCE_ID);
 		rel.add(authResourceRel);
 

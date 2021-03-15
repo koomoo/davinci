@@ -75,33 +75,38 @@ public class DashboardAspect {
 		}
 	}
     
-    private void createDashboard(JoinPoint joinPoint, Object methodRe) throws Exception {
+	private void createDashboard(JoinPoint joinPoint, Object methodRe) throws Exception {
 		DashboardCreate dashboardCreate = (DashboardCreate) joinPoint.getArgs()[0];
 		User user = (User) joinPoint.getArgs()[1];
 		Dashboard dashboard = (Dashboard) methodRe;
 		String shareToken = getShareToken(dashboard.getId(), user);
-		
-		CrmResourceAndRoleUtil.createCrmResource(null, CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()),
-				dashboardCreate.getName(), CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()), 1,
-				user.getUsername(), assembleShareUrl(shareToken));
 
-		CrmResourceAndRoleUtil.createCrmResource(null, CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()),
-				dashboardCreate.getName() + "【鉴权】", getAuthUrl(shareToken), 1,
-				user.getUsername());
+		CrmResourceAndRoleUtil.createCrmResource(null,
+				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL,
+						dashboardCreate.getDashboardPortalId()),
+				dashboardCreate.getName(),
+				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()), 1,
+				user.getUsername(), assembleShareUrl(shareToken), CrmConstant.CRM_RESOURCE_TYPE_ID_MENU);
+
+		CrmResourceAndRoleUtil.createCrmResource(null,
+				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()),
+				dashboardCreate.getName() + "【dashboard数据】", getAuthUrl(shareToken), 1, user.getUsername(),
+				CrmConstant.CRM_RESOURCE_TYPE_ID_API);
 
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
 		CrmRoleResourceCreate dashboardRoleResource = new CrmRoleResourceCreate();
-		dashboardRoleResource
-				.setRoleEnglish(CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
-		dashboardRoleResource.setResourceUrl(CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()));
+		dashboardRoleResource.setRoleEnglish(CrmResourceAndRoleUtil
+				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
+		dashboardRoleResource.setResourceUrl(
+				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()));
 		rel.add(dashboardRoleResource);
 
 		CrmRoleResourceCreate permissionRoleResource = new CrmRoleResourceCreate();
-		permissionRoleResource
-				.setRoleEnglish(CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
+		permissionRoleResource.setRoleEnglish(CrmResourceAndRoleUtil
+				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
 		permissionRoleResource.setResourceUrl(getAuthUrl(shareToken));
 		rel.add(permissionRoleResource);
-		
+
 		CrmResourceAndRoleUtil.relCrmRoleResource(user.getUsername(), rel);
 	}
     

@@ -111,9 +111,10 @@ public class CrmResourceAndRoleUtil {
 		}
 	}
 	
-	public static void createCrmResource(Integer parentResourceId, String parentResourceUrl, String resourceName, String resourceUrl, Integer isLeaf, String createdByUsername, String resourceDesc) {
-		Map<String,Object> resourceParam = new HashMap<>();
-		resourceParam.put("resourceTypeId", CrmConstant.CRM_RESOURCE_TYPE_ID);
+	public static void createCrmResource(Integer parentResourceId, String parentResourceUrl, String resourceName,
+			String resourceUrl, Integer isLeaf, String createdByUsername, String resourceDesc, Integer resourceTypeId) {
+		Map<String, Object> resourceParam = new HashMap<>();
+		resourceParam.put("resourceTypeId", resourceTypeId);
 		resourceParam.put("parentResourceId", parentResourceId);
 		resourceParam.put("parentResourceUrl", parentResourceUrl);
 		resourceParam.put("resourceName", resourceName);
@@ -123,18 +124,21 @@ public class CrmResourceAndRoleUtil {
 		resourceParam.put("isLeaf", isLeaf);
 		resourceParam.put("displayName", resourceName);
 		resourceParam.put("createdByUsername", createdByUsername);
-		String resourcePostReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + RESOURCE_CREATE_URL, JSON.toJSONString(resourceParam));
-		Map<String,Object> resourcePostRe = JSON.parseObject(resourcePostReStr, new TypeReference<Map<String,Object>>(){}.getType());
-		if(resourcePostRe == null || !Integer.valueOf(0).equals(resourcePostRe.get("status"))) {
+		String resourcePostReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + RESOURCE_CREATE_URL,
+				JSON.toJSONString(resourceParam));
+		Map<String, Object> resourcePostRe = JSON.parseObject(resourcePostReStr,
+				new TypeReference<Map<String, Object>>() {
+				}.getType());
+		if (resourcePostRe == null || !Integer.valueOf(0).equals(resourcePostRe.get("status"))) {
 			log.error("创建CRM资源失败,re={}", resourcePostReStr);
 			throw new RuntimeException("创建CRM资源失败");
 		}
 	}
 
 	public static void createCrmResource(Integer parentResourceId, String parentResourceUrl, String resourceName,
-			String resourceUrl, Integer isLeaf, String createdByUsername) {
+			String resourceUrl, Integer isLeaf, String createdByUsername, Integer resourceTypeId) {
 		createCrmResource(parentResourceId, parentResourceUrl, resourceName, resourceUrl, isLeaf, createdByUsername,
-				null);
+				null, resourceTypeId);
 	}
 	
 	public static String assembleResourceUrl(String type, Long id) {

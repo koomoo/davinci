@@ -75,22 +75,37 @@ public class DashboardAspect {
 		DashboardCreate dashboardCreate = (DashboardCreate) joinPoint.getArgs()[0];
 		User user = (User) joinPoint.getArgs()[1];
 		Dashboard dashboard = (Dashboard) methodRe;
+		String shareToken = getShareToken(dashboard.getId(), user);
+		
 		CrmResourceAndRoleUtil.createCrmResource(null, CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()),
 				dashboardCreate.getName(), CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()), 1,
-				user.getUsername(), assembleShareUrl(dashboard.getId(), user));
+				user.getUsername(), assembleShareUrl(shareToken));
 
-		getShareToken(dashboard.getId(), user);
+		CrmResourceAndRoleUtil.createCrmResource(null, CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()),
+				dashboardCreate.getName() + "【鉴权】", getPermissionUrl(shareToken), 1,
+				user.getUsername());
+
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
-		CrmRoleResourceCreate crmRoleResourceCreate = new CrmRoleResourceCreate();
-		crmRoleResourceCreate
+		CrmRoleResourceCreate dashboardRoleResource = new CrmRoleResourceCreate();
+		dashboardRoleResource
 				.setRoleEnglish(CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
-		crmRoleResourceCreate.setResourceUrl(CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()));
-		rel.add(crmRoleResourceCreate);
+		dashboardRoleResource.setResourceUrl(CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()));
+		rel.add(dashboardRoleResource);
+
+		CrmRoleResourceCreate permissionRoleResource = new CrmRoleResourceCreate();
+		permissionRoleResource
+				.setRoleEnglish(CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
+		permissionRoleResource.setResourceUrl(getPermissionUrl(shareToken));
+		rel.add(permissionRoleResource);
+		
 		CrmResourceAndRoleUtil.relCrmRoleResource(user.getUsername(), rel);
 	}
     
-    private String assembleShareUrl(Long id, User user) throws Exception {
-		return "/dav/share.html?shareToken=" + getShareToken(id, user) + "#share/dashboard";
+    private String getPermissionUrl(String shareToken) {
+    		return "/dav/api/v3/share/permissions/" + shareToken;
+    }
+    private String assembleShareUrl(String shareToken) {
+		return "/dav/share.html?shareToken=" + shareToken + "#share/dashboard";
 	}
     
     private String getShareToken(Long id, User user) throws Exception {
@@ -98,10 +113,6 @@ public class DashboardAspect {
 		shareEntity.setMode(ShareMode.NORMAL);
 		shareEntity.setExpired(DateUtils.getUtilDate("2050-03-18 17:07:42", "yyyy-MM-dd HH:mm:ss"));
 		ShareResult shareResult = dashboardService.shareDashboard(id, user, shareEntity);
-		
-		log.debug("token={}", shareResult.getToken());
-		optLogger.debug("token={}", shareResult.getToken());
-		
 		return shareResult.getToken();
     }
 }

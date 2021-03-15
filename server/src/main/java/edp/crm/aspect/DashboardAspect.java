@@ -53,12 +53,16 @@ public class DashboardAspect {
 		} else if (DASHBOARD_UPDATE_METHOD_NAME.equals(methodName)) {
 			updateDashboard(joinPoint, methodRe);
 		} else if (DASHBOARD_DELETE_METHOD_NAME.equals(methodName)) {
-			deleteDashboard((Long)joinPoint.getArgs()[0], ((User)joinPoint.getArgs()[1]).getUsername());
+			deleteDashboard((Long)joinPoint.getArgs()[0], ((User)joinPoint.getArgs()[1]));
 		}
     }
     
-    public void deleteDashboard(Long dashboardId, String username) {
-		CrmResourceAndRoleUtil.deleteCrmResource(CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboardId), username);
+    public void deleteDashboard(Long dashboardId, User user) throws Exception {
+    		//删除dashboard
+		CrmResourceAndRoleUtil.deleteCrmResource(CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboardId), user.getUsername());
+		
+		//删除dashboard鉴权接口
+		CrmResourceAndRoleUtil.deleteCrmResource(getAuthUrl(getShareToken(dashboardId, user)), user.getUsername());
 	}
     
     private void updateDashboard(JoinPoint joinPoint, Object methodRe) {
@@ -82,7 +86,7 @@ public class DashboardAspect {
 				user.getUsername(), assembleShareUrl(shareToken));
 
 		CrmResourceAndRoleUtil.createCrmResource(null, CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()),
-				dashboardCreate.getName() + "【鉴权】", getPermissionUrl(shareToken), 1,
+				dashboardCreate.getName() + "【鉴权】", getAuthUrl(shareToken), 1,
 				user.getUsername());
 
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
@@ -95,14 +99,14 @@ public class DashboardAspect {
 		CrmRoleResourceCreate permissionRoleResource = new CrmRoleResourceCreate();
 		permissionRoleResource
 				.setRoleEnglish(CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
-		permissionRoleResource.setResourceUrl(getPermissionUrl(shareToken));
+		permissionRoleResource.setResourceUrl(getAuthUrl(shareToken));
 		rel.add(permissionRoleResource);
 		
 		CrmResourceAndRoleUtil.relCrmRoleResource(user.getUsername(), rel);
 	}
     
-    private String getPermissionUrl(String shareToken) {
-    		return "/dav/api/v3/share/permissions/" + shareToken;
+    private String getAuthUrl(String shareToken) {
+    		return "/dav/api/v3/share/dashboard/" + shareToken;
     }
     private String assembleShareUrl(String shareToken) {
 		return "/dav/share.html?shareToken=" + shareToken + "#share/dashboard";

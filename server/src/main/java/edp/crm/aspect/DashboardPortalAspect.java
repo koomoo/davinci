@@ -33,7 +33,6 @@ public class DashboardPortalAspect {
 	private static final String DASHBOARD_PORTAL_UPDATE_METHOD_NAME = "updateDashboardPortal";
 	private static final String DASHBOARD_PORTAL_DELETE_METHOD_NAME = "deleteDashboardPortal";
 
-	private static final Integer CRM_RESOURCE_MENU_SYSTEMMANAGER = 1;
 	private static final Integer CRM_DAVINCI_AUTH_RESOURCE_ID = 1841;
 
 	@Autowired
@@ -81,7 +80,11 @@ public class DashboardPortalAspect {
 		List<Dashboard> dashboards = dashboardService.getDashboards(dashboardPortalId, user);
 		if(CollectionUtils.isEmpty(dashboards)) return;
 		dashboards.forEach(dashboard -> {
-			dashboardAspect.deleteDashboard(dashboard.getId(), user.getUsername());
+			try {
+				dashboardAspect.deleteDashboard(dashboard.getId(), user);
+			} catch (Exception e) {
+				log.error("删除dashboard资源失败");
+			}
 		});
 		
 	}

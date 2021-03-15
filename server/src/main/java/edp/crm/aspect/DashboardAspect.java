@@ -111,7 +111,7 @@ public class DashboardAspect {
 	}
     
     private String getAuthUrl(String shareToken) {
-    		return "/dav/api/v3/share/dashboard/" + shareToken;
+    		return "/v3/share/dashboard/" + shareToken;
     }
     private String assembleShareUrl(String shareToken) {
 		return "/dav/share.html?shareToken=" + shareToken + "#share/dashboard";

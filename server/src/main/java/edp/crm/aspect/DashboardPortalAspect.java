@@ -116,7 +116,7 @@ public class DashboardPortalAspect {
 				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
 				dashboardPortalCreat.getName() + "管理员", null, CrmResourceAndRoleUtil.assembleRoleEnglish(
 						CrmConstant.TYPE_PROJECT, dashboardPortalCreat.getProjectId()),
-				0, user.getUsername());
+				1, user.getUsername());
 
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
 		CrmRoleResourceCreate projectResourceRel = new CrmRoleResourceCreate();

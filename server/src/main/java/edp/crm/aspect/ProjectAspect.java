@@ -3,6 +3,7 @@ package edp.crm.aspect;
 import java.util.List;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -16,12 +17,14 @@ import org.springframework.stereotype.Component;
 import edp.davinci.core.enums.LogNameEnum;
 import edp.davinci.dto.organizationDto.OrganizationInfo;
 import edp.davinci.dto.projectDto.ProjectCreat;
+import edp.davinci.dto.projectDto.ProjectDetail;
 import edp.davinci.dto.projectDto.ProjectInfo;
-import edp.davinci.dto.projectDto.ProjectUpdate;
 import edp.davinci.model.DashboardPortal;
+import edp.davinci.model.Organization;
 import edp.davinci.model.User;
 import edp.davinci.service.DashboardPortalService;
 import edp.davinci.service.OrganizationService;
+import edp.davinci.service.ProjectService;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -39,6 +42,8 @@ public class ProjectAspect {
 	private DashboardPortalAspect dashboardPortalAspect;
 	@Autowired
 	private OrganizationService organizationService;
+	@Autowired
+	private ProjectService projectService;
 	// 切点
 	@Pointcut("execution(* edp.davinci.service.impl.ProjectServiceImpl.deleteProject(..)) ")
 	public void beforePointcut() {
@@ -88,15 +93,28 @@ public class ProjectAspect {
 
 	private void updateProject(JoinPoint joinPoint) throws Exception {
 		Long projectId = (Long) joinPoint.getArgs()[0];
-		ProjectUpdate projectUpdate = (ProjectUpdate) joinPoint.getArgs()[1];
 		User user = (User) joinPoint.getArgs()[2];
 
+		updateProjectName(projectId, user);
+	}
+	
+	public void updateProjectName(Long projectId, User user) {
+		ProjectDetail projectDetail = projectService.getProjectDetail(projectId, user, true);
+		if(projectDetail == null) return;
+		Organization organization = projectDetail.getOrganization();
+		String resourceName = assembleProjectResourceName(organization == null ? "" : organization.getName(), projectDetail.getName());
+		
 		CrmResourceAndRoleUtil.updateCrmResource(
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_PROJECT, projectId),
-				projectUpdate.getName(), user.getUsername());
+				resourceName, user.getUsername());
 		CrmResourceAndRoleUtil.updateCrmRole(
 				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_PROJECT, projectId),
-				projectUpdate.getName(), user.getUsername());
+				resourceName, user.getUsername());
+	}
+	
+	private String assembleProjectResourceName(String orgName, String projectName) {
+		return (StringUtils.isBlank(orgName) ? "" : orgName) + "-"
+				+ (StringUtils.isBlank(projectName) ? "" : projectName);
 	}
 
 	private void createProject(JoinPoint joinPoint, Object methodRe) {
@@ -105,7 +123,7 @@ public class ProjectAspect {
 		ProjectInfo projectInfo = (ProjectInfo) methodRe;
 
 		OrganizationInfo organization = organizationService.getOrganization(projectCreat.getOrgId(), user);
-		String resourceName = (organization != null ? organization.getName() : "") + "-" + projectCreat.getName();
+		String resourceName = assembleProjectResourceName(organization != null ? organization.getName() : "", projectCreat.getName());
 
 		CrmResourceAndRoleUtil.createCrmResource(CrmConstant.CRM_RESOURCE_MENU_DAVINCI, null, resourceName,
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_PROJECT, projectInfo.getId()), 0,

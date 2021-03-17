@@ -49,7 +49,7 @@ public class OrganizationAspect {
 		OrganizationPut put = (OrganizationPut)joinPoint.getArgs()[0];
 		User user = (User)joinPoint.getArgs()[1];
 		
-		PageInfo<ProjectWithCreateBy> projectsByOrg = projectService.getProjectsByOrg(put.getId(), user, "", 0, 100);
+		PageInfo<ProjectWithCreateBy> projectsByOrg = projectService.getProjectsByOrg(put.getId(), user, "", 1, 100);
 		List<ProjectWithCreateBy> projects = projectsByOrg.getList();
 		if(CollectionUtils.isEmpty(projects)) return;
 		projects.forEach(project -> {

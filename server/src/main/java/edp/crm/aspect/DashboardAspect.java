@@ -5,6 +5,7 @@ import java.util.List;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,13 +38,23 @@ public class DashboardAspect {
 	@Autowired
     private DashboardService dashboardService;
 	//切点
+	@Pointcut("execution(* edp.davinci.service.impl.DashboardServiceImpl.deleteDashboard(..)) ")
+	public void beforePointcut() {
+	}
     @Pointcut(
     		"execution(* edp.davinci.service.impl.DashboardServiceImpl.createDashboard(..)) "
-    		+ "|| execution(* edp.davinci.service.impl.DashboardServiceImpl.deleteDashboard(..)) "
     		+ "|| execution(* edp.davinci.service.impl.DashboardServiceImpl.updateDashboards(..)) "
     		)
     public void afterPointcut() {
     }
+    
+    @Before("beforePointcut()")
+	public void beforeMethod(JoinPoint joinPoint) throws Exception {
+		String methodName = joinPoint.getSignature().getName();
+		if (DASHBOARD_DELETE_METHOD_NAME.equals(methodName)) {
+			deleteDashboard((Long)joinPoint.getArgs()[0], ((User)joinPoint.getArgs()[1]));
+		}
+	}
     
     @AfterReturning(pointcut="afterPointcut()", returning="methodRe")
     public void afterMethod(JoinPoint joinPoint, Object methodRe) throws Exception {
@@ -52,8 +63,6 @@ public class DashboardAspect {
 			createDashboard(joinPoint, methodRe);
 		} else if (DASHBOARD_UPDATE_METHOD_NAME.equals(methodName)) {
 			updateDashboard(joinPoint, methodRe);
-		} else if (DASHBOARD_DELETE_METHOD_NAME.equals(methodName)) {
-			deleteDashboard((Long)joinPoint.getArgs()[0], ((User)joinPoint.getArgs()[1]));
 		}
     }
     

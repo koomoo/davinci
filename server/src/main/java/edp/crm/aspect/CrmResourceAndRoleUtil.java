@@ -24,7 +24,7 @@ public class CrmResourceAndRoleUtil {
 	private static final String ROLE_CREATE_URL = "/role";
 	private static final String ROLE_UPDATE_URL = "/role/update";
 	private static final String ROLE_DELETE_URL = "/role/delete";
-	private static final String ROLE_RESOURCE_REL_URL = "/roleResource";
+	private static final String ROLE_RESOURCE_REL_URL = "/role/resource";
 	
 	public static void relCrmRoleResource(String createdByUsername, List<CrmRoleResourceCreate> rel) {
 		if(CollectionUtils.isEmpty(rel)) return;

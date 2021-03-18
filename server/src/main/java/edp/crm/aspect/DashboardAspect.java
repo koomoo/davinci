@@ -94,12 +94,12 @@ public class DashboardAspect {
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL,
 						dashboardCreate.getDashboardPortalId()),
 				dashboardCreate.getName(),
-				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()), 1,
+				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()), 1, null,
 				user.getUsername(), assembleShareUrl(shareToken), CrmConstant.CRM_RESOURCE_TYPE_ID_MENU);
 
 		CrmResourceAndRoleUtil.createCrmResource(null,
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()),
-				dashboardCreate.getName() + "【dashboard数据】", getAuthUrl(shareToken), 1, user.getUsername(),
+				dashboardCreate.getName() + "【dashboard数据】", getAuthUrl(shareToken), 1, "GET", user.getUsername(),
 				CrmConstant.CRM_RESOURCE_TYPE_ID_API);
 
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();

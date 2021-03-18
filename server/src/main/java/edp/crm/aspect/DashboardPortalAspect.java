@@ -111,7 +111,7 @@ public class DashboardPortalAspect {
 						dashboardPortalCreat.getProjectId()),
 				dashboardPortalCreat.getName(),
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
-				0, user.getUsername(), CrmConstant.CRM_RESOURCE_TYPE_ID_MENU);
+				0, null, user.getUsername(), CrmConstant.CRM_RESOURCE_TYPE_ID_MENU);
 		CrmResourceAndRoleUtil.createCrmRole(
 				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardPortal.getId()),
 				dashboardPortalCreat.getName() + "管理员", null, CrmResourceAndRoleUtil.assembleRoleEnglish(

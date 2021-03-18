@@ -126,7 +126,7 @@ public class ProjectAspect {
 		String resourceName = assembleProjectResourceName(organization != null ? organization.getName() : "", projectCreat.getName());
 
 		CrmResourceAndRoleUtil.createCrmResource(CrmConstant.CRM_RESOURCE_MENU_DAVINCI, null, resourceName,
-				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_PROJECT, projectInfo.getId()), 0,
+				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_PROJECT, projectInfo.getId()), 0, null,
 				user.getUsername(), CrmConstant.CRM_RESOURCE_TYPE_ID_MENU);
 		CrmResourceAndRoleUtil.createCrmRole(
 				CrmResourceAndRoleUtil.assembleRoleEnglish(CrmConstant.TYPE_PROJECT, projectInfo.getId()),

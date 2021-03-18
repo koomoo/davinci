@@ -112,7 +112,7 @@ public class CrmResourceAndRoleUtil {
 	}
 	
 	public static void createCrmResource(Integer parentResourceId, String parentResourceUrl, String resourceName,
-			String resourceUrl, Integer isLeaf, String createdByUsername, String resourceDesc, Integer resourceTypeId) {
+			String resourceUrl, Integer isLeaf, String requestMethod, String createdByUsername, String resourceDesc, Integer resourceTypeId) {
 		Map<String, Object> resourceParam = new HashMap<>();
 		resourceParam.put("resourceTypeId", resourceTypeId);
 		resourceParam.put("parentResourceId", parentResourceId);
@@ -122,6 +122,7 @@ public class CrmResourceAndRoleUtil {
 		resourceParam.put("resourceDesc", resourceDesc);
 		resourceParam.put("systemCode", CrmConstant.CRM_RESOURCE_SYSTEM_CODE_CRM);
 		resourceParam.put("isLeaf", isLeaf);
+		resourceParam.put("requestMethod", requestMethod);
 		resourceParam.put("displayName", resourceName);
 		resourceParam.put("createdByUsername", createdByUsername);
 		String resourcePostReStr = CRMHttpClientUtil.doPostJson(CRM_SERVER + RESOURCE_CREATE_URL,
@@ -136,8 +137,8 @@ public class CrmResourceAndRoleUtil {
 	}
 
 	public static void createCrmResource(Integer parentResourceId, String parentResourceUrl, String resourceName,
-			String resourceUrl, Integer isLeaf, String createdByUsername, Integer resourceTypeId) {
-		createCrmResource(parentResourceId, parentResourceUrl, resourceName, resourceUrl, isLeaf, createdByUsername,
+			String resourceUrl, Integer isLeaf, String requestMethod, String createdByUsername, Integer resourceTypeId) {
+		createCrmResource(parentResourceId, parentResourceUrl, resourceName, resourceUrl, isLeaf, requestMethod, createdByUsername,
 				null, resourceTypeId);
 	}
 	

@@ -69,9 +69,6 @@ public class DashboardAspect {
     public void deleteDashboard(Long dashboardId, User user) throws Exception {
     		//删除dashboard
 		CrmResourceAndRoleUtil.deleteCrmResource(CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboardId), user.getUsername());
-		
-		//删除dashboard鉴权接口
-		CrmResourceAndRoleUtil.deleteCrmResource(getAuthUrl(getShareToken(dashboardId, user)), user.getUsername());
 	}
     
     private void updateDashboard(JoinPoint joinPoint, Object methodRe) {
@@ -97,11 +94,6 @@ public class DashboardAspect {
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()), 1, null,
 				user.getUsername(), assembleShareUrl(shareToken), CrmConstant.CRM_RESOURCE_TYPE_ID_MENU);
 
-		CrmResourceAndRoleUtil.createCrmResource(null,
-				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()),
-				dashboardCreate.getName() + "【dashboard数据】", getAuthUrl(shareToken), 1, "GET", user.getUsername(),
-				CrmConstant.CRM_RESOURCE_TYPE_ID_API);
-
 		List<CrmRoleResourceCreate> rel = Lists.newArrayList();
 		CrmRoleResourceCreate dashboardRoleResource = new CrmRoleResourceCreate();
 		dashboardRoleResource.setRoleEnglish(CrmResourceAndRoleUtil
@@ -110,18 +102,9 @@ public class DashboardAspect {
 				CrmResourceAndRoleUtil.assembleResourceUrl(CrmConstant.TYPE_DASHBOARD, dashboard.getId()));
 		rel.add(dashboardRoleResource);
 
-		CrmRoleResourceCreate permissionRoleResource = new CrmRoleResourceCreate();
-		permissionRoleResource.setRoleEnglish(CrmResourceAndRoleUtil
-				.assembleRoleEnglish(CrmConstant.TYPE_DASHBOARD_PORTAL, dashboardCreate.getDashboardPortalId()));
-		permissionRoleResource.setResourceUrl(getAuthUrl(shareToken));
-		rel.add(permissionRoleResource);
-
 		CrmResourceAndRoleUtil.relCrmRoleResource(user.getUsername(), rel);
 	}
     
-    private String getAuthUrl(String shareToken) {
-    		return "/v3/share/dashboard/" + shareToken;
-    }
     private String assembleShareUrl(String shareToken) {
 		return "/dav/share.html?shareToken=" + shareToken + "#share/dashboard";
 	}

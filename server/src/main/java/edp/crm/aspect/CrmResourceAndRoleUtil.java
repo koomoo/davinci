@@ -16,8 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CrmResourceAndRoleUtil {
 	private static final Logger optLogger = LoggerFactory.getLogger(LogNameEnum.BUSINESS_OPERATION.getName());
-	//private static final String CRM_SERVER = "http://api.ymt.io/crm-gateway/api";
-	private static final String CRM_SERVER = "http://dev-crm-host001.ymt.io:81/api";
+	private static final String CRM_SERVER = "http://api.ymt.io/crm-gateway/api";
+//	private static final String CRM_SERVER = "http://dev-crm-host001.ymt.io:81/api";
 	private static final String RESOURCE_CREATE_URL = "/resource";
 	private static final String RESOURCE_UPDATE_URL = "/resource/update";
 	private static final String RESOURCE_DELETE_URL = "/resource/delete";

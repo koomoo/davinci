@@ -161,7 +161,7 @@ public class CRMHttpClientUtil {
 		if(StringUtils.isBlank(url)) return url;
 		return url 
 				+ (url.contains("?") ? "&" : "?") 
-				+ "sercertKey=DAVINCI&product=davinci&gray-mark=liufei";
+				+ "sercertKey=DAVINCI&product=davinci";
 	}
 
 	/**

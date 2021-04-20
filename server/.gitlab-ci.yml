@@ -1,0 +1,71 @@
+before_script:
+cache:
+  paths:
+  - target/*.jar
+  
+stages:
+  - build
+  - test
+  - bounce
+  
+build_job:
+  stage: build
+  script:
+    - echo $CI_PROJECT_NAME
+    - mvn clean package -Pdev -Dmaven.test.skip=true -U -f pom.xml -s /data/maven-setting.xml
+    - echo $CI_COMMIT_SHORT_SHA $CI_PROJECT_PATH $CI_PROJECT_NAME
+    - docker build --build-arg BUILD_ENV=liantiao -f Dockerfile -t harbor.ymt.io/$CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA .
+    - sudo docker push harbor.ymt.io/$CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA
+  # 在哪个分支上可用
+  only:
+    - integration
+    - liantiao
+
+  # 指定哪个ci runner跑该工作
+  tags:
+    - dev-crm-host001
+  
+deploy_job:
+  stage: test
+  script:
+    - echo 'Test begin'
+    - echo 'Test succeed.'
+  # 在哪个分支上可用
+  only:
+    - integration
+    - liantiao
+
+  # 指定哪个ci runner跑该工作
+  tags:
+    - dev-crm-host001
+
+
+bounce_java_job:
+  stage: bounce
+  script:
+    - echo 'Bounce java begin.'
+    - rm -rf /data/$CI_PROJECT_NAME/*.jar
+    - cp -rf target/$CI_PROJECT_NAME*.jar /data/$CI_PROJECT_NAME/
+    - sudo supervisorctl restart $CI_PROJECT_NAME
+    - echo 'Bounce java succeed.'
+  # 在哪个分支上可用
+  only:
+    - integration
+
+  # 指定哪个ci runner跑该工作
+  tags:
+    - dev-crm-host001
+
+
+bounce_docker_job:
+  stage: bounce
+  script:
+    - cd /home/gitlab-runner
+    - bash liantiao_deployment.sh $CI_PROJECT_NAME
+  # 在哪个分支上可用
+  only:
+    - liantiao
+
+  # 指定哪个ci runner跑该工作
+  tags:
+    - dev-host-k8s-master
